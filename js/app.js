@@ -83,9 +83,7 @@ async function initApp() {
 
 // Loader Functions
 function hideLoader() {
-    setTimeout(() => {
-        loader.classList.add('hidden');
-    }, 500);
+    // Loader disabled - no-op
 }
 
 function updateLoader(percent) {
@@ -942,6 +940,15 @@ function showSection(sectionName) {
 }
 
 // Frame Loading
+async function loadFramesBackground() {
+    for (let i = 1; i <= FRAME_COUNT; i++) {
+        const img = new Image();
+        img.src = `frames/frame_${String(i).padStart(4, '0')}.webp`;
+        img.onload = () => { frames[i - 1] = img; };
+        img.onerror = () => {};
+    }
+}
+
 async function loadFrames() {
     const totalFrames = FRAME_COUNT;
     let loaded = 0;
@@ -1204,10 +1211,9 @@ function setupEventListeners() {
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         setupCanvas();
-        await loadFrames();
+        loadFramesBackground();
     } catch(e) {
         console.error('Init error:', e);
-        updateLoader(100);
     }
     initApp();
 });
