@@ -2,8 +2,17 @@
 const SUPABASE_URL = 'https://cdfcwwmtfavvkupanbmd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkZmN3d210ZmF2dmt1cGFuYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDk3NTMsImV4cCI6MjA5ODEyNTc1M30.3qLSsivr6nRvzzVRF0RG3pawJkd9zDQMx4CtaVcHw98';
 
-// Initialize Supabase
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase (safe fallback if CDN fails)
+let supabase = null;
+try {
+    if (window.supabase && window.supabase.createClient) {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+        console.warn('Supabase CDN not loaded');
+    }
+} catch(e) {
+    console.warn('Supabase init failed:', e);
+}
 
 // Global State
 let currentUser = null;
@@ -12,18 +21,6 @@ let cart = [];
 let categories = [];
 let products = [];
 let banners = [];
-
-// DOM Elements
-const loader = document.getElementById('loader');
-const loaderBar = document.getElementById('loader-bar');
-const loaderPercent = document.getElementById('loader-percent');
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
-const scrollContainer = document.getElementById('scroll-container');
-const canvasWrap = document.getElementById('canvas-wrap');
-const darkOverlay = document.getElementById('dark-overlay');
-const heroSection = document.getElementById('hero');
-const marqueeWrap = document.querySelector('.marquee-wrap');
 
 // Frame variables
 let frames = [];
@@ -34,64 +31,73 @@ const FRAME_SPEED = 2.0;
 // Initialize Lenis Smooth Scroll (with fallback)
 let lenis = null;
 try {
-    lenis = new Lenis({
-        duration: 1.2,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-        smoothWheel: true
-    });
-    lenis.on('scroll', ScrollTrigger.update);
-    gsap.ticker.add((time) => lenis.raf(time * 1000));
-    gsap.ticker.lagSmoothing(0);
+    if (typeof Lenis !== 'undefined' && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+        lenis = new Lenis({
+            duration: 1.2,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            smoothWheel: true
+        });
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time) => lenis.raf(time * 1000));
+        gsap.ticker.lagSmoothing(0);
+    }
 } catch(e) {
-    console.warn('Lenis/GSAP not loaded, using native scroll');
+    console.warn('Lenis/GSAP not loaded');
 }
 
 // Initialize App
 async function initApp() {
-    try {
-        // Check for existing session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            currentUser = session.user;
-            await checkAdminRole();
-            hideAuthModal();
-            showCartButton();
-        } else {
+    // Always set up event listeners first (buttons must work)
+    setupEventListeners();
+
+    if (supabase) {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                await checkAdminRole();
+                hideAuthModal();
+                showCartButton();
+            } else {
+                showAuthModal();
+            }
+        } catch(e) {
+            console.error('Auth error:', e);
             showAuthModal();
         }
-    } catch(e) {
-        console.error('Auth error:', e);
+    } else {
         showAuthModal();
     }
 
     hideLoader();
+    
+    if (supabase) {
+        await loadCategories();
+        await loadProducts();
+        await loadBanners();
+    }
 
-    // Setup event listeners
-    setupEventListeners();
-    
-    // Load data
-    await loadCategories();
-    await loadProducts();
-    await loadBanners();
-    
-    // Setup animations
-    setupScrollAnimations();
-    setupCounterAnimations();
-    setupMarqueeAnimation();
+    try {
+        setupScrollAnimations();
+        setupCounterAnimations();
+        setupMarqueeAnimation();
+    } catch(e) {
+        console.warn('Animation setup skipped');
+    }
 }
 
 // Loader Functions
 function hideLoader() {
-    const loader = document.getElementById('loader');
-    loader.style.opacity = '0';
-    setTimeout(() => {
-        loader.style.display = 'none';
-    }, 700);
+    const el = document.getElementById('loader');
+    if (el) {
+        el.style.opacity = '0';
+        setTimeout(() => { el.style.display = 'none'; }, 700);
+    }
 }
 
 function updateLoader(percent) {
-    loaderBar.style.width = `${percent}%`;
-    loaderPercent.textContent = `${Math.round(percent)}%`;
+    const bar = document.getElementById('loader-bar');
+    if (bar) bar.style.width = `${percent}%`;
 }
 
 // Auth Functions
@@ -919,10 +925,14 @@ function renderSearchResults(results) {
 // Section Navigation
 function showSection(sectionName) {
     // Hide hero and scroll container
-    heroSection.style.display = 'none';
-    scrollContainer.style.display = 'none';
-    canvasWrap.style.display = 'none';
-    marqueeWrap.style.display = 'none';
+    const hero = document.getElementById('hero');
+    const scroll = document.getElementById('scroll-container');
+    const canvasWrap = document.getElementById('canvas-wrap');
+    const marquee = document.querySelector('.marquee-wrap');
+    if (hero) hero.style.display = 'none';
+    if (scroll) scroll.style.display = 'none';
+    if (canvasWrap) canvasWrap.style.display = 'none';
+    if (marquee) marquee.style.display = 'none';
 
     // Hide all sections
     document.querySelectorAll('#sections-container > section').forEach(el => {
@@ -937,7 +947,7 @@ function showSection(sectionName) {
     }
 
     // Load data for specific sections
-    if (sectionName === 'orders' || sectionName === 'purchases') {
+    if (supabase && (sectionName === 'orders' || sectionName === 'purchases')) {
         loadOrders();
     }
     if (sectionName === 'search') {
@@ -1007,6 +1017,9 @@ async function loadFrames() {
 
 // Canvas Rendering
 function setupCanvas() {
+    const canvas = document.getElementById('canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const dpr = window.devicePixelRatio || 1;
     canvas.width = window.innerWidth * dpr;
     canvas.height = window.innerHeight * dpr;
@@ -1017,6 +1030,9 @@ function drawFrame(index) {
     const img = frames[index];
     if (!img) return;
 
+    const canvas = document.getElementById('canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     const cw = canvas.width / (window.devicePixelRatio || 1);
     const ch = canvas.height / (window.devicePixelRatio || 1);
     const iw = img.naturalWidth;
@@ -1035,24 +1051,29 @@ function drawFrame(index) {
 // Scroll Animations
 function setupScrollAnimations() {
     if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+    const heroEl = document.getElementById('hero');
+    const scrollEl = document.getElementById('scroll-container');
+    const canvasWrapEl = document.getElementById('canvas-wrap');
+    if (!scrollEl) return;
+
     // Hero transition
     ScrollTrigger.create({
-        trigger: scrollContainer,
+        trigger: scrollEl,
         start: 'top top',
         end: 'bottom bottom',
         scrub: true,
         onUpdate: (self) => {
             const p = self.progress;
-            heroSection.style.opacity = Math.max(0, 1 - p * 15);
+            if (heroEl) heroEl.style.opacity = Math.max(0, 1 - p * 15);
             const wipeProgress = Math.min(1, Math.max(0, (p - 0.01) / 0.06));
             const radius = wipeProgress * 75;
-            canvasWrap.style.clipPath = `circle(${radius}% at 50% 50%)`;
+            if (canvasWrapEl) canvasWrapEl.style.clipPath = `circle(${radius}% at 50% 50%)`;
         }
     });
 
     // Frame to scroll binding
     ScrollTrigger.create({
-        trigger: scrollContainer,
+        trigger: scrollEl,
         start: 'top top',
         end: 'bottom bottom',
         scrub: true,
@@ -1068,7 +1089,7 @@ function setupScrollAnimations() {
 
     // Dark overlay
     ScrollTrigger.create({
-        trigger: scrollContainer,
+        trigger: scrollEl,
         start: 'top top',
         end: 'bottom bottom',
         scrub: true,
@@ -1116,8 +1137,10 @@ function setupSectionAnimation(section) {
             break;
     }
 
+    const scrollEl = document.getElementById('scroll-container');
+    if (!scrollEl) return;
     ScrollTrigger.create({
-        trigger: scrollContainer,
+        trigger: scrollEl,
         start: 'top top',
         end: 'bottom bottom',
         scrub: true,
@@ -1159,11 +1182,15 @@ function setupCounterAnimations() {
 // Marquee Animation
 function setupMarqueeAnimation() {
     if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
+    const scrollEl = document.getElementById('scroll-container');
+    const marqueeEl = document.querySelector('.marquee-wrap');
+    if (!scrollEl || !marqueeEl) return;
+
     gsap.to('.marquee-text', {
         xPercent: -25,
         ease: 'none',
         scrollTrigger: { 
-            trigger: scrollContainer, 
+            trigger: scrollEl, 
             start: 'top top', 
             end: 'bottom bottom', 
             scrub: true 
@@ -1172,16 +1199,16 @@ function setupMarqueeAnimation() {
 
     // Fade marquee based on scroll
     ScrollTrigger.create({
-        trigger: scrollContainer,
+        trigger: scrollEl,
         start: 'top top',
         end: 'bottom bottom',
         scrub: true,
         onUpdate: (self) => {
             const p = self.progress;
             if (p > 0.1 && p < 0.9) {
-                marqueeWrap.style.opacity = '0.3';
+                marqueeEl.style.opacity = '0.3';
             } else {
-                marqueeWrap.style.opacity = '0';
+                marqueeEl.style.opacity = '0';
             }
         }
     });
