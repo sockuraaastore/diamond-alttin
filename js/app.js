@@ -1,172 +1,94 @@
-// Supabase Configuration
-const SUPABASE_URL = 'https://cdfcwwmtfavvkupanbmd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkZmN3d210ZmF2dmt1cGFuYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDk3NTMsImV4cCI6MjA5ODEyNTc1M30.3qLSsivr6nRvzzVRF0RG3pawJkd9zDQMx4CtaVcHw98';
-
-// Initialize Supabase (safe fallback if CDN fails)
-let supabase = null;
-try {
-    if (window.supabase && window.supabase.createClient) {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    } else {
-        console.warn('Supabase CDN not loaded');
-    }
-} catch(e) {
-    console.warn('Supabase init failed:', e);
-}
-
 // Global State
-let currentUser = null;
-let isAdmin = false;
-let cart = [];
-let categories = [];
-let products = [];
-let banners = [];
+var currentUser = null;
+var isAdmin = false;
+var cart = [];
+var categories = [];
+var products = [];
+var banners = [];
+var supabaseClient = null;
 
-// Frame variables
-let frames = [];
-let currentFrame = 0;
-const FRAME_COUNT = 94;
-const FRAME_SPEED = 2.0;
+// Supabase Config
+var SUPABASE_URL = 'https://cdfcwwmtfavvkupanbmd.supabase.co';
+var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkZmN3d210ZmF2dmt1cGFuYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDk3NTMsImV4cCI6MjA5ODEyNTc1M30.3qLSsivr6nRvzzVRF0RG3pawJkd9zDQMx4CtaVcHw98';
 
-// Initialize Lenis Smooth Scroll (with fallback)
-let lenis = null;
-try {
-    if (typeof Lenis !== 'undefined' && typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-        lenis = new Lenis({
-            duration: 1.2,
-            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-            smoothWheel: true
-        });
-        lenis.on('scroll', ScrollTrigger.update);
-        gsap.ticker.add((time) => lenis.raf(time * 1000));
-        gsap.ticker.lagSmoothing(0);
-    }
-} catch(e) {
-    console.warn('Lenis/GSAP not loaded');
-}
-
-// Initialize App
-async function initApp() {
-    // Always set up event listeners first (buttons must work)
-    setupEventListeners();
-
-    if (supabase) {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                await checkAdminRole();
-                hideAuthModal();
-                showCartButton();
-            } else {
-                showAuthModal();
-            }
-        } catch(e) {
-            console.error('Auth error:', e);
-            showAuthModal();
-        }
-    } else {
-        showAuthModal();
-    }
-
-    hideLoader();
-    
-    if (supabase) {
-        await loadCategories();
-        await loadProducts();
-        await loadBanners();
-    }
-
+function initSupabase() {
     try {
-        setupScrollAnimations();
-        setupCounterAnimations();
-        setupMarqueeAnimation();
+        if (window.supabase && window.supabase.createClient) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
     } catch(e) {
-        console.warn('Animation setup skipped');
+        console.warn('Supabase init failed');
     }
 }
 
-// Loader Functions
-function hideLoader() {
-    const el = document.getElementById('loader');
-    if (el) {
-        el.style.opacity = '0';
-        setTimeout(() => { el.style.display = 'none'; }, 700);
-    }
-}
-
-function updateLoader(percent) {
-    const bar = document.getElementById('loader-bar');
-    if (bar) bar.style.width = `${percent}%`;
-}
-
-// Auth Functions
+// ===== AUTH =====
 function showAuthModal() {
-    document.getElementById('auth-modal').classList.remove('hidden');
+    var m = document.getElementById('auth-modal');
+    if (m) m.classList.remove('hidden');
 }
 
 function hideAuthModal() {
-    document.getElementById('auth-modal').classList.add('hidden');
+    var m = document.getElementById('auth-modal');
+    if (m) m.classList.add('hidden');
 }
 
 function toggleAuthMode() {
-    const title = document.getElementById('auth-title');
-    const subtitle = document.getElementById('auth-subtitle');
-    const submitBtn = document.getElementById('auth-submit-btn');
-    const toggleText = document.getElementById('auth-toggle-text');
-    const passcodeGroup = document.getElementById('auth-passcode-group');
-
+    var title = document.getElementById('auth-title');
+    var sub = document.getElementById('auth-subtitle');
+    var btn = document.getElementById('auth-submit-btn');
+    var tog = document.getElementById('auth-toggle-text');
+    var pg = document.getElementById('auth-passcode-group');
+    if (!title) return;
     if (title.textContent === 'ورود') {
         title.textContent = 'ثبت نام';
-        subtitle.textContent = 'حساب کاربری جدید ایجاد کنید';
-        submitBtn.textContent = 'ثبت نام';
-        toggleText.textContent = 'حساب کاربری دارید؟ وارد شوید';
-        passcodeGroup.classList.remove('hidden');
+        sub.textContent = 'حساب کاربری جدید ایجاد کنید';
+        btn.textContent = 'ثبت نام';
+        tog.textContent = 'حساب کاربری دارید؟ وارد شوید';
+        if (pg) pg.classList.remove('hidden');
     } else {
         title.textContent = 'ورود';
-        subtitle.textContent = 'به حساب خود وارد شوید';
-        submitBtn.textContent = 'ورود';
-        toggleText.textContent = 'حساب کاربری ندارید؟ ثبت نام کنید';
-        passcodeGroup.classList.add('hidden');
+        sub.textContent = 'به حساب خود وارد شوید';
+        btn.textContent = 'ورود';
+        tog.textContent = 'حساب کاربری ندارید؟ ثبت نام کنید';
+        if (pg) pg.classList.add('hidden');
     }
+}
+
+function closeAuthModal() {
+    hideAuthModal();
 }
 
 async function handleAuth(e) {
     e.preventDefault();
-    const email = document.getElementById('auth-email').value;
-    const password = document.getElementById('auth-password').value;
-    const passcode = document.getElementById('auth-passcode').value;
-    const isLogin = document.getElementById('auth-title').textContent === 'ورود';
-
+    if (!supabaseClient) { alert('خطا: اتصال به سرور برقرار نیست'); return; }
+    var email = document.getElementById('auth-email').value;
+    var password = document.getElementById('auth-password').value;
+    var passcode = document.getElementById('auth-passcode').value;
+    var isLogin = document.getElementById('auth-title').textContent === 'ورود';
     try {
-        let result;
+        var result;
         if (isLogin) {
-            result = await supabase.auth.signInWithPassword({ email, password });
+            result = await supabaseClient.auth.signInWithPassword({ email: email, password: password });
         } else {
-            result = await supabase.auth.signUp({ email, password });
+            result = await supabaseClient.auth.signUp({ email: email, password: password });
         }
-
         if (result.error) throw result.error;
-
         currentUser = result.data.user;
-
-        // Server-side passcode verification
         if (passcode) {
-            const { data: valid } = await supabase.rpc('verify_admin_passcode', { code: passcode });
-            if (valid) {
-                await supabase.from('user_roles').upsert({ user_id: currentUser.id, role: 'admin' });
-                isAdmin = true;
-                showAdminButton();
-            }
+            try {
+                var { data: valid } = await supabaseClient.rpc('verify_admin_passcode', { code: passcode });
+                if (valid) {
+                    await supabaseClient.from('user_roles').upsert({ user_id: currentUser.id, role: 'admin' });
+                    isAdmin = true;
+                    showAdminButton();
+                }
+            } catch(pe) {}
         }
-
         await checkAdminRole();
         hideAuthModal();
         showCartButton();
-
-        // Show welcome popup for new users
         if (!isLogin) {
-            localStorage.setItem(`welcome_${currentUser.id}`, 'true');
+            localStorage.setItem('welcome_' + currentUser.id, 'true');
             showWelcomePopup();
         }
     } catch (error) {
@@ -175,434 +97,345 @@ async function handleAuth(e) {
 }
 
 async function checkAdminRole() {
-    if (!currentUser) return;
-    const { data } = await supabase.from('user_roles').select('role').eq('user_id', currentUser.id).single();
-    if (data && data.role === 'admin') {
-        isAdmin = true;
-        showAdminButton();
-    }
+    if (!supabaseClient || !currentUser) return;
+    try {
+        var { data } = await supabaseClient.from('user_roles').select('role').eq('user_id', currentUser.id).single();
+        if (data && data.role === 'admin') { isAdmin = true; showAdminButton(); }
+    } catch(e) {}
 }
 
 function showAdminButton() {
-    document.getElementById('admin-btn').classList.remove('hidden');
-    document.getElementById('admin-btn-mobile').classList.remove('hidden');
+    var b1 = document.getElementById('admin-btn');
+    var b2 = document.getElementById('admin-btn-mobile');
+    if (b1) b1.classList.remove('hidden');
+    if (b2) b2.classList.remove('hidden');
 }
 
 function hideAdminButton() {
-    document.getElementById('admin-btn').classList.add('hidden');
-    document.getElementById('admin-btn-mobile').classList.add('hidden');
+    var b1 = document.getElementById('admin-btn');
+    var b2 = document.getElementById('admin-btn-mobile');
+    if (b1) b1.classList.add('hidden');
+    if (b2) b2.classList.add('hidden');
 }
 
 async function logout() {
-    await supabase.auth.signOut();
-    currentUser = null;
-    isAdmin = false;
-    cart = [];
-    hideAdminButton();
-    hideCartButton();
-    showAuthModal();
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    currentUser = null; isAdmin = false; cart = [];
+    hideAdminButton(); hideCartButton(); showAuthModal();
 }
 
-// Welcome Popup
+// ===== WELCOME =====
 function showWelcomePopup() {
-    document.getElementById('welcome-popup').classList.remove('hidden');
+    var p = document.getElementById('welcome-popup');
+    if (p) p.classList.remove('hidden');
 }
 
 function closeWelcomePopup() {
-    document.getElementById('welcome-popup').classList.add('hidden');
+    var p = document.getElementById('welcome-popup');
+    if (p) p.classList.add('hidden');
 }
 
-// Cart Functions
+// ===== CART =====
 function showCartButton() {
-    document.getElementById('cart-button').classList.add('visible');
+    var b = document.getElementById('cart-button');
+    if (b) { b.classList.remove('hidden'); b.style.display = 'flex'; }
 }
 
 function hideCartButton() {
-    document.getElementById('cart-button').classList.remove('visible');
+    var b = document.getElementById('cart-button');
+    if (b) { b.classList.add('hidden'); b.style.display = 'none'; }
 }
 
 function addToCart(product, quantity) {
-    const existingItem = cart.find(item => item.id === product.id);
-    if (existingItem) {
-        existingItem.quantity += quantity;
-    } else {
-        cart.push({ ...product, quantity });
-    }
+    var existing = cart.find(function(item) { return item.id === product.id; });
+    if (existing) { existing.quantity += quantity; }
+    else { cart.push(Object.assign({}, product, { quantity: quantity })); }
     updateCartCount();
 }
 
 function updateCartCount() {
-    const count = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const countEl = document.getElementById('cart-count');
-    if (count > 0) {
-        countEl.textContent = count;
-        countEl.classList.remove('hidden');
-    } else {
-        countEl.classList.add('hidden');
-    }
+    var count = cart.reduce(function(sum, item) { return sum + item.quantity; }, 0);
+    var el = document.getElementById('cart-count');
+    if (!el) return;
+    if (count > 0) { el.textContent = count; el.classList.remove('hidden'); el.style.display = 'flex'; }
+    else { el.classList.add('hidden'); el.style.display = 'none'; }
 }
 
 function openCartModal() {
-    const modal = document.getElementById('cart-modal');
-    const content = document.getElementById('cart-modal-content');
-    
+    var modal = document.getElementById('cart-modal');
+    var content = document.getElementById('cart-modal-content');
+    if (!modal || !content) return;
     if (cart.length === 0) {
-        content.innerHTML = `
-            <h2 class="text-2xl font-['Playfair_Display',serif] mb-6">سبد خرید</h2>
-            <p class="text-white/60 text-center py-8">سبد خرید شما خالی است</p>
-        `;
+        content.innerHTML = '<h2 class="text-2xl font-serif mb-6">سبد خرید</h2><p class="text-gray-400 text-center py-8">سبد خرید شما خالی است</p>';
     } else {
-        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        content.innerHTML = `
-            <h2 class="text-2xl font-['Playfair_Display',serif] mb-6">سبد خرید</h2>
-            <div class="space-y-4 mb-6">
-                ${cart.map(item => `
-                    <div class="flex items-center gap-4 bg-dark rounded-lg p-4">
-                        <img src="${item.image_url}" class="w-20 h-20 object-cover rounded-lg">
-                        <div class="flex-1">
-                            <h3 class="font-semibold">${item.title}</h3>
-                            <p class="text-gold">${item.price.toLocaleString()} تومان</p>
-                            <p class="text-white/60 text-sm">تعداد: ${item.quantity}</p>
-                        </div>
-                        <button onclick="removeFromCart(${item.id})" class="text-red-500 hover:text-red-400">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                            </svg>
-                        </button>
-                    </div>
-                `).join('')}
-            </div>
-            <div class="border-t border-white/10 pt-4 mb-6">
-                <div class="flex justify-between items-center text-lg font-semibold">
-                    <span>جمع کل:</span>
-                    <span class="text-gold">${total.toLocaleString()} تومان</span>
-                </div>
-            </div>
-            <div class="bg-dark rounded-lg p-4 mb-6">
-                <p class="text-white/60 text-sm mb-2">شماره کارت فروشنده:</p>
-                <p class="font-mono text-gold">۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸</p>
-            </div>
-            <form id="checkout-form" class="space-y-4">
-                <div>
-                    <label class="block text-white/80 mb-2 text-sm">شماره تماس</label>
-                    <input type="tel" id="checkout-phone" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
-                </div>
-                <div>
-                    <label class="block text-white/80 mb-2 text-sm">آدرس ارسال</label>
-                    <textarea id="checkout-address" rows="2" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none resize-none" required></textarea>
-                </div>
-                <div>
-                    <label class="block text-white/80 mb-2 text-sm">کد پستی</label>
-                    <input type="text" id="checkout-zip" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
-                </div>
-                <div>
-                    <label class="block text-white/80 mb-2 text-sm">تصویر رسید پرداخت</label>
-                    <input type="file" id="checkout-receipt" accept="image/*" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
-                </div>
-                <button type="submit" class="w-full bg-gold text-dark py-3 rounded-lg font-semibold hover:bg-gold-light transition-colors">ثبت سفارش</button>
-            </form>
-        `;
-        
+        var total = cart.reduce(function(s, i) { return s + (i.price * i.quantity); }, 0);
+        var itemsHtml = cart.map(function(item) {
+            return '<div class="flex items-center gap-4 bg-gray-900 rounded-lg p-4 mb-3">' +
+                '<img src="' + item.image_url + '" class="w-20 h-20 object-cover rounded-lg">' +
+                '<div class="flex-1"><h3 class="font-semibold">' + item.title + '</h3>' +
+                '<p class="text-yellow-500">' + item.price.toLocaleString() + ' تومان</p>' +
+                '<p class="text-gray-400 text-sm">تعداد: ' + item.quantity + '</p></div>' +
+                '<button onclick="removeFromCart(' + item.id + ')" class="text-red-500 hover:text-red-400">حذف</button></div>';
+        }).join('');
+        content.innerHTML = '<h2 class="text-2xl font-serif mb-6">سبد خرید</h2>' + itemsHtml +
+            '<div class="border-t border-gray-700 pt-4 mb-6"><div class="flex justify-between text-lg font-semibold">' +
+            '<span>جمع کل:</span><span class="text-yellow-500">' + total.toLocaleString() + ' تومان</span></div></div>' +
+            '<div class="bg-gray-900 rounded-lg p-4 mb-6"><p class="text-gray-400 text-sm mb-2">شماره کارت فروشنده:</p>' +
+            '<p class="font-mono text-yellow-500">۶۰۳۷-۹۹۱۸-۱۲۳۴-۵۶۷۸</p></div>' +
+            '<form id="checkout-form" class="space-y-4">' +
+            '<div><label class="block text-gray-300 mb-2 text-sm">شماره تماس</label>' +
+            '<input type="tel" id="checkout-phone" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white" required></div>' +
+            '<div><label class="block text-gray-300 mb-2 text-sm">آدرس ارسال</label>' +
+            '<textarea id="checkout-address" rows="2" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white resize-none" required></textarea></div>' +
+            '<div><label class="block text-gray-300 mb-2 text-sm">کد پستی</label>' +
+            '<input type="text" id="checkout-zip" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white" required></div>' +
+            '<div><label class="block text-gray-300 mb-2 text-sm">تصویر رسید پرداخت</label>' +
+            '<input type="file" id="checkout-receipt" accept="image/*" class="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-3 text-white" required></div>' +
+            '<button type="submit" class="w-full bg-yellow-600 text-black py-3 rounded-lg font-semibold hover:bg-yellow-500">ثبت سفارش</button></form>';
         document.getElementById('checkout-form').addEventListener('submit', handleCheckout);
     }
-    
     modal.classList.remove('hidden');
 }
 
 function closeCartModal() {
-    document.getElementById('cart-modal').classList.add('hidden');
+    var m = document.getElementById('cart-modal');
+    if (m) m.classList.add('hidden');
 }
 
 function removeFromCart(productId) {
-    cart = cart.filter(item => item.id !== productId);
+    cart = cart.filter(function(item) { return item.id !== productId; });
     updateCartCount();
     openCartModal();
 }
 
 async function handleCheckout(e) {
     e.preventDefault();
-    
-    if (!currentUser) {
-        alert('لطفا ابتدا وارد حساب کاربری شوید');
-        return;
-    }
-
-    const phone = document.getElementById('checkout-phone').value;
-    const address = document.getElementById('checkout-address').value;
-    const zip = document.getElementById('checkout-zip').value;
-    const receiptFile = document.getElementById('checkout-receipt').files[0];
-
-    // Upload receipt image
-    const { data: receiptData, error: receiptError } = await supabase.storage
-        .from('receipts')
-        .upload(`${currentUser.id}/${Date.now()}.jpg`, receiptFile);
-
-    if (receiptError) {
-        alert('خطا در آپلود تصویر رسید');
-        return;
-    }
-
-    // Create order
-    const orderData = {
-        user_id: currentUser.id,
-        phone,
-        address,
-        zip_code: zip,
-        receipt_url: receiptData.path,
-        items: cart,
-        total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-        status: 'pending'
-    };
-
-    const { error } = await supabase.from('orders').insert(orderData);
-    if (error) {
-        alert('خطا در ثبت سفارش');
-        return;
-    }
-
-    // Clear cart
-    cart = [];
-    updateCartCount();
-    closeCartModal();
-    alert('سفارش شما با موفقیت ثبت شد');
-    loadOrders();
+    if (!currentUser) { alert('لطفا ابتدا وارد حساب کاربری شوید'); return; }
+    if (!supabaseClient) { alert('خطا در اتصال به سرور'); return; }
+    var phone = document.getElementById('checkout-phone').value;
+    var address = document.getElementById('checkout-address').value;
+    var zip = document.getElementById('checkout-zip').value;
+    var receiptFile = document.getElementById('checkout-receipt').files[0];
+    var { data: receiptData, error: receiptError } = await supabaseClient.storage.from('receipts').upload(currentUser.id + '/' + Date.now() + '.jpg', receiptFile);
+    if (receiptError) { alert('خطا در آپلود تصویر رسید'); return; }
+    var orderData = { user_id: currentUser.id, phone: phone, address: address, zip_code: zip, receipt_url: receiptData.path, items: cart, total: cart.reduce(function(s, i) { return s + (i.price * i.quantity); }, 0), status: 'pending' };
+    var { error } = await supabaseClient.from('orders').insert(orderData);
+    if (error) { alert('خطا در ثبت سفارش'); return; }
+    cart = []; updateCartCount(); closeCartModal(); alert('سفارش شما با موفقیت ثبت شد');
 }
 
-// Product Functions
+// ===== PRODUCTS =====
 async function loadProducts() {
-    const { data, error } = await supabase.from('products').select('*');
-    if (!error) {
-        products = data || [];
-        renderProducts(products);
-    }
+    if (!supabaseClient) return;
+    try {
+        var { data } = await supabaseClient.from('products').select('*');
+        if (data) { products = data; renderProducts(products); }
+    } catch(e) {}
 }
 
-function renderProducts(productsToRender) {
-    const container = document.getElementById('products-container');
-    container.innerHTML = productsToRender.map(product => `
-        <div class="product-card" onclick="openProductModal(${product.id})">
-            <img src="${product.image_url}" alt="${product.title}">
-            <div class="product-card-content">
-                <h3 class="font-semibold text-lg mb-2">${product.title}</h3>
-                <p class="text-gold font-bold">${product.price.toLocaleString()} تومان</p>
-                <p class="text-white/60 text-sm mt-2">موجودی: ${product.stock}</p>
-            </div>
-        </div>
-    `).join('');
+function renderProducts(list) {
+    var c = document.getElementById('products-container');
+    if (!c) return;
+    c.innerHTML = list.map(function(p) {
+        return '<div class="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 cursor-pointer hover:border-yellow-600 transition-colors" onclick="openProductModal(\'' + p.id + '\')">' +
+            '<img src="' + p.image_url + '" class="w-full h-48 object-cover">' +
+            '<div class="p-4"><h3 class="font-semibold text-lg mb-2">' + p.title + '</h3>' +
+            '<p class="text-yellow-500 font-bold">' + p.price.toLocaleString() + ' تومان</p>' +
+            '<p class="text-gray-400 text-sm mt-2">موجودی: ' + p.stock + '</p></div></div>';
+    }).join('');
 }
 
 function openProductModal(productId) {
-    const product = products.find(p => p.id === productId);
+    var product = products.find(function(p) { return p.id === productId; });
     if (!product) return;
-
-    const modal = document.getElementById('product-modal');
-    const content = document.getElementById('product-modal-content');
-    
-    content.innerHTML = `
-        <img src="${product.image_url}" class="w-full h-64 object-cover rounded-lg mb-4">
-        <h2 class="text-2xl font-['Playfair_Display',serif] mb-2">${product.title}</h2>
-        <p class="text-white/70 mb-4">${product.description}</p>
-        <p class="text-gold text-2xl font-bold mb-4">${product.price.toLocaleString()} تومان</p>
-        <p class="text-white/60 mb-6">موجودی: ${product.stock}</p>
-        <div class="flex items-center gap-4 mb-6">
-            <label class="text-white/80">تعداد:</label>
-            <input type="number" id="product-quantity" value="1" min="1" max="${product.stock}" class="w-20 bg-dark border border-white/20 rounded-lg px-3 py-2 text-white text-center focus:border-gold focus:outline-none">
-        </div>
-        <button onclick="addToCartFromModal(${product.id})" class="w-full bg-gold text-dark py-3 rounded-lg font-semibold hover:bg-gold-light transition-colors">افزودن به سبد خرید</button>
-    `;
-    
+    var modal = document.getElementById('product-modal');
+    var content = document.getElementById('product-modal-content');
+    if (!modal || !content) return;
+    content.innerHTML = '<img src="' + product.image_url + '" class="w-full h-64 object-cover rounded-lg mb-4">' +
+        '<h2 class="text-2xl font-serif mb-2">' + product.title + '</h2>' +
+        '<p class="text-gray-300 mb-4">' + product.description + '</p>' +
+        '<p class="text-yellow-500 text-2xl font-bold mb-4">' + product.price.toLocaleString() + ' تومان</p>' +
+        '<p class="text-gray-400 mb-6">موجودی: ' + product.stock + '</p>' +
+        '<div class="flex items-center gap-4 mb-6"><label class="text-gray-300">تعداد:</label>' +
+        '<input type="number" id="product-quantity" value="1" min="1" max="' + product.stock + '" class="w-20 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-white text-center"></div>' +
+        '<button onclick="addToCartFromModal(\'' + product.id + '\')" class="w-full bg-yellow-600 text-black py-3 rounded-lg font-semibold hover:bg-yellow-500">افزودن به سبد خرید</button>';
     modal.classList.remove('hidden');
 }
 
 function closeProductModal() {
-    document.getElementById('product-modal').classList.add('hidden');
+    var m = document.getElementById('product-modal');
+    if (m) m.classList.add('hidden');
 }
 
 function addToCartFromModal(productId) {
-    const product = products.find(p => p.id === productId);
-    const quantity = parseInt(document.getElementById('product-quantity').value);
-    addToCart(product, quantity);
+    var product = products.find(function(p) { return p.id === productId; });
+    var qty = parseInt(document.getElementById('product-quantity').value);
+    addToCart(product, qty);
     closeProductModal();
 }
 
-// Category Functions
+// ===== CATEGORIES =====
 async function loadCategories() {
-    const { data, error } = await supabase.from('categories').select('*');
-    if (!error) {
-        categories = data || [];
-        renderCategories();
-    }
+    if (!supabaseClient) return;
+    try {
+        var { data } = await supabaseClient.from('categories').select('*');
+        if (data) { categories = data; renderCategories(); }
+    } catch(e) {}
 }
 
 function renderCategories() {
-    const container = document.getElementById('categories-container');
-    container.innerHTML = `
-        <button onclick="filterByCategory('all')" class="category-btn active bg-gold text-dark px-6 py-3 rounded-full font-semibold hover:bg-gold-light transition-colors">همه</button>
-        ${categories.map(cat => `
-            <button onclick="filterByCategory('${cat.id}')" class="category-btn bg-dark-gray text-white/80 px-6 py-3 rounded-full font-semibold hover:bg-gold hover:text-dark transition-colors">${cat.name}</button>
-        `).join('')}
-    `;
+    var c = document.getElementById('categories-container');
+    if (!c) return;
+    c.innerHTML = '<button onclick="filterByCategory(\'all\', this)" class="category-btn bg-yellow-600 text-black px-6 py-3 rounded-full font-semibold hover:bg-yellow-500 transition-colors">همه</button>' +
+        categories.map(function(cat) {
+            return '<button onclick="filterByCategory(\'' + cat.id + '\', this)" class="category-btn bg-gray-800 text-gray-300 px-6 py-3 rounded-full font-semibold hover:bg-yellow-600 hover:text-black transition-colors">' + cat.name + '</button>';
+        }).join('');
 }
 
-function filterByCategory(categoryId) {
-    // Update active button
-    document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('active', 'bg-gold', 'text-dark');
-        btn.classList.add('bg-dark-gray', 'text-white/80');
+function filterByCategory(categoryId, btn) {
+    document.querySelectorAll('.category-btn').forEach(function(b) {
+        b.className = b.className.replace('bg-yellow-600 text-black', 'bg-gray-800 text-gray-300');
     });
-    event.target.classList.add('active', 'bg-gold', 'text-dark');
-    event.target.classList.remove('bg-dark-gray', 'text-white/80');
-
-    // Filter products
-    if (categoryId === 'all') {
-        renderProducts(products);
-    } else {
-        const filtered = products.filter(p => p.category_id === categoryId);
-        renderProducts(filtered);
-    }
+    if (btn) { btn.className = btn.className.replace('bg-gray-800 text-gray-300', 'bg-yellow-600 text-black'); }
+    if (categoryId === 'all') { renderProducts(products); }
+    else { renderProducts(products.filter(function(p) { return p.category_id === categoryId; })); }
 }
 
-// Banner Functions
+// ===== BANNERS =====
 async function loadBanners() {
-    const { data, error } = await supabase.from('banners').select('*');
-    if (!error) {
-        banners = data || [];
-        renderBanners();
-    }
+    if (!supabaseClient) return;
+    try {
+        var { data } = await supabaseClient.from('banners').select('*');
+        if (data) { banners = data; renderBanners(); }
+    } catch(e) {}
 }
 
 function renderBanners() {
-    const container = document.getElementById('banners-container');
-    if (banners.length === 0) {
-        container.innerHTML = '<div class="p-8 text-center text-white/60">بنری موجود نیست</div>';
-        return;
-    }
-    container.innerHTML = banners.map(banner => `
-        <div class="min-w-full">
-            <img src="${banner.image_url}" class="w-full h-64 object-cover">
-        </div>
-    `).join('');
+    var c = document.getElementById('banners-container');
+    if (!c) return;
+    if (banners.length === 0) { c.innerHTML = '<div class="p-8 text-center text-gray-400">بنری موجود نیست</div>'; return; }
+    c.innerHTML = banners.map(function(b) { return '<div class="min-w-full"><img src="' + b.image_url + '" class="w-full h-64 object-cover"></div>'; }).join('');
 }
 
-// Order Functions
+// ===== ORDERS =====
 async function loadOrders() {
-    if (!currentUser) return;
-    
-    const { data, error } = await supabase.from('orders')
-        .select('*')
-        .eq('user_id', currentUser.id)
-        .order('created_at', { ascending: false });
-    
-    if (!error) {
-        renderOrders(data || []);
-        renderPurchases(data || []);
-    }
+    if (!supabaseClient || !currentUser) return;
+    try {
+        var { data } = await supabaseClient.from('orders').select('*').eq('user_id', currentUser.id).order('created_at', { ascending: false });
+        if (data) { renderOrders(data); renderPurchases(data); }
+    } catch(e) {}
 }
 
 function renderOrders(orders) {
-    const container = document.getElementById('orders-container');
-    if (orders.length === 0) {
-        container.innerHTML = '<div class="text-center text-white/60 py-8">سفارشی ثبت نشده است</div>';
-        return;
-    }
-    container.innerHTML = orders.map(order => `
-        <div class="order-card">
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-white/60 text-sm">${new Date(order.created_at).toLocaleDateString('fa-IR')}</span>
-                <span class="order-status ${order.status}">${getStatusText(order.status)}</span>
-            </div>
-            <div class="mb-4">
-                <p class="text-white/80 text-sm">شماره تماس: ${order.phone}</p>
-                <p class="text-white/80 text-sm">آدرس: ${order.address}</p>
-            </div>
-            <div class="border-t border-white/10 pt-4">
-                <p class="text-gold font-semibold">${order.total.toLocaleString()} تومان</p>
-            </div>
-            ${order.admin_note ? `<p class="text-white/60 text-sm mt-2">یادداشت مدیر: ${order.admin_note}</p>` : ''}
-        </div>
-    `).join('');
+    var c = document.getElementById('orders-container');
+    if (!c) return;
+    if (!orders.length) { c.innerHTML = '<p class="text-center text-gray-400 py-8">سفارشی ثبت نشده است</p>'; return; }
+    c.innerHTML = orders.map(function(o) {
+        return '<div class="bg-gray-900 rounded-xl p-6 border border-gray-800 mb-4">' +
+            '<div class="flex justify-between mb-4"><span class="text-gray-400 text-sm">' + new Date(o.created_at).toLocaleDateString('fa-IR') + '</span>' +
+            '<span class="px-3 py-1 rounded-full text-xs font-semibold ' + (o.status === 'approved' ? 'bg-green-900 text-green-300' : o.status === 'rejected' ? 'bg-red-900 text-red-300' : 'bg-yellow-900 text-yellow-300') + '">' + getStatusText(o.status) + '</span></div>' +
+            '<p class="text-gray-300 text-sm">شماره تماس: ' + o.phone + '</p>' +
+            '<p class="text-gray-300 text-sm">آدرس: ' + o.address + '</p>' +
+            '<p class="text-yellow-500 font-semibold mt-4">' + o.total.toLocaleString() + ' تومان</p>' +
+            (o.admin_note ? '<p class="text-gray-400 text-sm mt-2">یادداشت: ' + o.admin_note + '</p>' : '') + '</div>';
+    }).join('');
 }
 
 function renderPurchases(orders) {
-    const container = document.getElementById('purchases-container');
-    const approvedOrders = orders.filter(o => o.status === 'approved');
-    
-    if (approvedOrders.length === 0) {
-        container.innerHTML = '<div class="text-center text-white/60 py-8">خریدی تأیید شده وجود ندارد</div>';
-        return;
-    }
-    container.innerHTML = approvedOrders.map(order => `
-        <div class="order-card">
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-white/60 text-sm">${new Date(order.created_at).toLocaleDateString('fa-IR')}</span>
-                <span class="order-status approved">تأیید شده</span>
-            </div>
-            <p class="text-gold font-semibold">${order.total.toLocaleString()} تومان</p>
-            ${order.admin_note ? `<p class="text-white/60 text-sm mt-2">${order.admin_note}</p>` : ''}
-        </div>
-    `).join('');
+    var c = document.getElementById('purchases-container');
+    if (!c) return;
+    var approved = orders.filter(function(o) { return o.status === 'approved'; });
+    if (!approved.length) { c.innerHTML = '<p class="text-center text-gray-400 py-8">خریدی تأیید شده وجود ندارد</p>'; return; }
+    c.innerHTML = approved.map(function(o) {
+        return '<div class="bg-gray-900 rounded-xl p-6 border border-gray-800 mb-4">' +
+            '<span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-900 text-green-300">تأیید شده</span>' +
+            '<p class="text-yellow-500 font-semibold mt-4">' + o.total.toLocaleString() + ' تومان</p>' +
+            (o.admin_note ? '<p class="text-gray-400 text-sm mt-2">' + o.admin_note + '</p>' : '') + '</div>';
+    }).join('');
 }
 
 function getStatusText(status) {
-    switch (status) {
-        case 'pending': return 'در انتظار بررسی';
-        case 'approved': return 'تأیید شده';
-        case 'rejected': return 'رد شده';
-        default: return status;
-    }
+    if (status === 'pending') return 'در انتظار بررسی';
+    if (status === 'approved') return 'تأیید شده';
+    if (status === 'rejected') return 'رد شده';
+    return status;
 }
 
-// Support Functions
+// ===== SUPPORT =====
 async function handleSupportSubmit(e) {
     e.preventDefault();
-    
-    if (!currentUser) {
-        alert('لطفا ابتدا وارد حساب کاربری شوید');
-        return;
-    }
-
-    const subject = document.getElementById('ticket-subject').value;
-    const description = document.getElementById('ticket-description').value;
-
-    const { error } = await supabase.from('tickets').insert({
-        user_id: currentUser.id,
-        subject,
-        description,
-        status: 'open'
-    });
-
-    if (error) {
-        alert('خطا در ارسال تیکت');
-        return;
-    }
-
+    if (!currentUser) { alert('لطفا ابتدا وارد حساب کاربری شوید'); return; }
+    if (!supabaseClient) { alert('خطا در اتصال به سرور'); return; }
+    var subject = document.getElementById('ticket-subject').value;
+    var description = document.getElementById('ticket-description').value;
+    var { error } = await supabaseClient.from('tickets').insert({ user_id: currentUser.id, subject: subject, description: description, status: 'open' });
+    if (error) { alert('خطا در ارسال تیکت'); return; }
     alert('تیکت شما با موفقیت ارسال شد');
     document.getElementById('support-form').reset();
 }
 
-// Admin Functions
+// ===== SEARCH =====
+function setupSearch() {
+    var input = document.getElementById('search-input');
+    if (!input) return;
+    input.addEventListener('input', function(e) {
+        var q = e.target.value.toLowerCase();
+        var results = products.filter(function(p) { return p.title.toLowerCase().indexOf(q) > -1 || p.description.toLowerCase().indexOf(q) > -1; });
+        var c = document.getElementById('search-results');
+        if (!c) return;
+        if (!q) { c.innerHTML = ''; return; }
+        if (!results.length) { c.innerHTML = '<p class="text-gray-400 col-span-3 text-center py-8">نتیجه‌ای یافت نشد</p>'; return; }
+        c.innerHTML = results.map(function(p) {
+            return '<div class="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 cursor-pointer hover:border-yellow-600" onclick="openProductModal(\'' + p.id + '\')">' +
+                '<img src="' + p.image_url + '" class="w-full h-48 object-cover">' +
+                '<div class="p-4"><h3 class="font-semibold text-lg mb-2">' + p.title + '</h3>' +
+                '<p class="text-yellow-500 font-bold">' + p.price.toLocaleString() + ' تومان</p></div></div>';
+        }).join('');
+    });
+}
+
+// ===== NAVIGATION =====
+function showSection(sectionName) {
+    var hero = document.getElementById('hero');
+    var scroll = document.getElementById('scroll-container');
+    var cw = document.getElementById('canvas-wrap');
+    var mq = document.querySelector('.marquee-wrap');
+    if (hero) hero.style.display = 'none';
+    if (scroll) scroll.style.display = 'none';
+    if (cw) cw.style.display = 'none';
+    if (mq) mq.style.display = 'none';
+    document.querySelectorAll('#sections-container > section').forEach(function(el) { el.classList.add('hidden'); });
+    var section = document.getElementById(sectionName + '-section');
+    if (section) { section.classList.remove('hidden'); window.scrollTo(0, 0); }
+    if (sectionName === 'orders' || sectionName === 'purchases') loadOrders();
+    if (sectionName === 'search') setupSearch();
+}
+
+// ===== ADMIN PANEL =====
 function showAdminPanel() {
     if (!isAdmin) return;
-    document.getElementById('admin-panel').classList.remove('hidden');
+    var p = document.getElementById('admin-panel');
+    if (p) p.classList.remove('hidden');
     loadAdminData();
 }
 
 function closeAdminPanel() {
-    document.getElementById('admin-panel').classList.add('hidden');
+    var p = document.getElementById('admin-panel');
+    if (p) p.classList.add('hidden');
 }
 
 function showAdminTab(tabName) {
-    // Hide all tabs
-    document.querySelectorAll('.admin-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.admin-tab').forEach(el => {
-        el.classList.remove('active', 'bg-gold', 'text-dark');
-        el.classList.add('text-white/80');
+    document.querySelectorAll('.admin-content').forEach(function(el) { el.classList.add('hidden'); });
+    document.querySelectorAll('.admin-tab').forEach(function(el) {
+        el.classList.remove('bg-yellow-600', 'text-black');
+        el.classList.add('text-gray-300');
     });
-
-    // Show selected tab
-    document.getElementById(`admin-${tabName}`).classList.remove('hidden');
-    event.target.classList.add('active', 'bg-gold', 'text-dark');
-    event.target.classList.remove('text-white/80');
+    var panel = document.getElementById('admin-' + tabName);
+    if (panel) panel.classList.remove('hidden');
+    if (event && event.target) {
+        event.target.classList.add('bg-yellow-600', 'text-black');
+        event.target.classList.remove('text-gray-300');
+    }
 }
 
 async function loadAdminData() {
@@ -614,639 +447,230 @@ async function loadAdminData() {
 }
 
 async function loadAdminBanners() {
-    const { data } = await supabase.from('banners').select('*');
-    const container = document.getElementById('banners-list');
-    if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-white/60">بنری موجود نیست</p>';
-        return;
-    }
-    container.innerHTML = data.map(banner => `
-        <div class="bg-dark rounded-lg overflow-hidden border border-white/10">
-            <img src="${banner.image_url}" class="w-full h-32 object-cover">
-            <div class="p-4 flex justify-end">
-                <button onclick="deleteBanner('${banner.id}')" class="text-red-500 hover:text-red-400 text-sm">حذف</button>
-            </div>
-        </div>
-    `).join('');
+    if (!supabaseClient) return;
+    var { data } = await supabaseClient.from('banners').select('*');
+    var c = document.getElementById('banners-list');
+    if (!c) return;
+    if (!data || !data.length) { c.innerHTML = '<p class="text-gray-400">بنری موجود نیست</p>'; return; }
+    c.innerHTML = data.map(function(b) {
+        return '<div class="bg-gray-900 rounded-lg overflow-hidden border border-gray-800"><img src="' + b.image_url + '" class="w-full h-32 object-cover">' +
+            '<div class="p-4 flex justify-end"><button onclick="deleteBanner(\'' + b.id + '\')" class="text-red-500 hover:text-red-400 text-sm">حذف</button></div></div>';
+    }).join('');
 }
 
 async function handleBannerSubmit(e) {
     e.preventDefault();
-    const file = document.getElementById('banner-image').files[0];
+    if (!supabaseClient) return;
+    var file = document.getElementById('banner-image').files[0];
     if (!file) return;
-
-    const { data, error } = await supabase.storage
-        .from('banners')
-        .upload(`${Date.now()}.jpg`, file);
-
-    if (error) {
-        alert('خطا در آپلود تصویر');
-        return;
-    }
-
-    await supabase.from('banners').insert({ image_url: data.path });
+    var { data, error } = await supabaseClient.storage.from('banners').upload(Date.now() + '.jpg', file);
+    if (error) { alert('خطا در آپلود'); return; }
+    await supabaseClient.from('banners').insert({ image_url: data.path });
     document.getElementById('banner-form').reset();
-    loadAdminBanners();
-    loadBanners();
+    loadAdminBanners(); loadBanners();
 }
 
-async function deleteBanner(bannerId) {
-    if (!confirm('آیا از حذف این بنر اطمینان دارید؟')) return;
-    await supabase.from('banners').delete().eq('id', bannerId);
-    loadAdminBanners();
-    loadBanners();
+async function deleteBanner(id) {
+    if (!confirm('حذف بنر؟')) return;
+    await supabaseClient.from('banners').delete().eq('id', id);
+    loadAdminBanners(); loadBanners();
 }
 
 async function loadAdminCategories() {
-    const { data } = await supabase.from('categories').select('*');
-    const container = document.getElementById('categories-list');
-    const select = document.getElementById('product-category');
-    
-    if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-white/60">دسته‌بندی وجود ندارد</p>';
-        select.innerHTML = '<option value="">دسته‌بندی‌ای موجود نیست</option>';
-        return;
+    if (!supabaseClient) return;
+    var { data } = await supabaseClient.from('categories').select('*');
+    var c = document.getElementById('categories-list');
+    var s = document.getElementById('product-category');
+    if (c) {
+        if (!data || !data.length) { c.innerHTML = '<p class="text-gray-400">دسته‌بندی وجود ندارد</p>'; }
+        else { c.innerHTML = data.map(function(cat) { return '<div class="bg-gray-900 rounded-lg p-4 flex justify-between border border-gray-800"><span class="text-gray-300">' + cat.name + '</span><button onclick="deleteCategory(\'' + cat.id + '\')" class="text-red-500 text-sm">حذف</button></div>'; }).join(''); }
     }
-
-    container.innerHTML = data.map(cat => `
-        <div class="bg-dark rounded-lg p-4 flex items-center justify-between border border-white/10">
-            <span class="text-white/80">${cat.name}</span>
-            <button onclick="deleteCategory('${cat.id}')" class="text-red-500 hover:text-red-400 text-sm">حذف</button>
-        </div>
-    `).join('');
-
-    select.innerHTML = data.map(cat => `
-        <option value="${cat.id}">${cat.name}</option>
-    `).join('');
+    if (s && data) { s.innerHTML = data.map(function(cat) { return '<option value="' + cat.id + '">' + cat.name + '</option>'; }).join(''); }
 }
 
 async function handleCategorySubmit(e) {
     e.preventDefault();
-    const name = document.getElementById('category-name').value;
-    
-    const { error } = await supabase.from('categories').insert({ name });
-    if (error) {
-        alert('خطا در افزودن دسته‌بندی');
-        return;
-    }
-
+    if (!supabaseClient) return;
+    var name = document.getElementById('category-name').value;
+    await supabaseClient.from('categories').insert({ name: name });
     document.getElementById('category-name').value = '';
-    loadAdminCategories();
-    loadCategories();
+    loadAdminCategories(); loadCategories();
 }
 
-async function deleteCategory(categoryId) {
-    if (!confirm('آیا از حذف این دسته‌بندی اطمینان دارید؟')) return;
-    await supabase.from('categories').delete().eq('id', categoryId);
-    loadAdminCategories();
-    loadCategories();
+async function deleteCategory(id) {
+    if (!confirm('حذف دسته‌بندی؟')) return;
+    await supabaseClient.from('categories').delete().eq('id', id);
+    loadAdminCategories(); loadCategories();
 }
 
 async function loadAdminProducts() {
-    const { data } = await supabase.from('products').select('*, categories(name)');
-    const container = document.getElementById('products-list-admin');
-    
-    if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-white/60">محصولی وجود ندارد</p>';
-        return;
-    }
-
-    container.innerHTML = data.map(product => `
-        <div class="bg-dark rounded-lg p-4 flex items-center gap-4 border border-white/10">
-            <img src="${product.image_url}" class="w-20 h-20 object-cover rounded-lg">
-            <div class="flex-1">
-                <h3 class="font-semibold">${product.title}</h3>
-                <p class="text-gold text-sm">${product.price.toLocaleString()} تومان</p>
-                <p class="text-white/60 text-sm">موجودی: ${product.stock}</p>
-            </div>
-            <button onclick="deleteProduct('${product.id}')" class="text-red-500 hover:text-red-400 text-sm">حذف</button>
-        </div>
-    `).join('');
+    if (!supabaseClient) return;
+    var { data } = await supabaseClient.from('products').select('*');
+    var c = document.getElementById('products-list-admin');
+    if (!c) return;
+    if (!data || !data.length) { c.innerHTML = '<p class="text-gray-400">محصولی وجود ندارد</p>'; return; }
+    c.innerHTML = data.map(function(p) {
+        return '<div class="bg-gray-900 rounded-lg p-4 flex items-center gap-4 border border-gray-800"><img src="' + p.image_url + '" class="w-20 h-20 object-cover rounded-lg">' +
+            '<div class="flex-1"><h3 class="font-semibold">' + p.title + '</h3><p class="text-yellow-500 text-sm">' + p.price.toLocaleString() + ' تومان</p><p class="text-gray-400 text-sm">موجودی: ' + p.stock + '</p></div>' +
+            '<button onclick="deleteProduct(\'' + p.id + '\')" class="text-red-500 text-sm">حذف</button></div>';
+    }).join('');
 }
 
 async function handleProductSubmit(e) {
     e.preventDefault();
-    const file = document.getElementById('product-image').files[0];
+    if (!supabaseClient) return;
+    var file = document.getElementById('product-image').files[0];
     if (!file) return;
-
-    const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(`${Date.now()}.jpg`, file);
-
-    if (uploadError) {
-        alert('خطا در آپلود تصویر');
-        return;
-    }
-
-    const productData = {
+    var { data: ud, error: ue } = await supabaseClient.storage.from('products').upload(Date.now() + '.jpg', file);
+    if (ue) { alert('خطا در آپلود'); return; }
+    await supabaseClient.from('products').insert({
         title: document.getElementById('product-title').value,
         description: document.getElementById('product-description').value,
         category_id: document.getElementById('product-category').value,
         price: parseInt(document.getElementById('product-price').value),
         stock: parseInt(document.getElementById('product-stock').value),
-        image_url: uploadData.path
-    };
-
-    const { error } = await supabase.from('products').insert(productData);
-    if (error) {
-        alert('خطا در افزودن محصول');
-        return;
-    }
-
+        image_url: ud.path
+    });
     document.getElementById('product-form').reset();
-    loadAdminProducts();
-    loadProducts();
+    loadAdminProducts(); loadProducts();
 }
 
-async function deleteProduct(productId) {
-    if (!confirm('آیا از حذف این محصول اطمینان دارید؟')) return;
-    await supabase.from('products').delete().eq('id', productId);
-    loadAdminProducts();
-    loadProducts();
+async function deleteProduct(id) {
+    if (!confirm('حذف محصول؟')) return;
+    await supabaseClient.from('products').delete().eq('id', id);
+    loadAdminProducts(); loadProducts();
 }
 
 async function loadAdminOrders() {
-    const { data } = await supabase.from('orders').select('*').order('created_at', { ascending: false });
-    const container = document.getElementById('admin-orders-list');
-    
-    if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-white/60">سفارشی وجود ندارد</p>';
-        return;
-    }
-
-    container.innerHTML = data.map(order => `
-        <div class="bg-dark rounded-lg p-4 border border-white/10">
-            <div class="flex items-center justify-between mb-4">
-                <span class="text-white/60 text-sm">${new Date(order.created_at).toLocaleDateString('fa-IR')}</span>
-                <span class="order-status ${order.status}">${getStatusText(order.status)}</span>
-            </div>
-            <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                <div>
-                    <p class="text-white/60">شماره تماس:</p>
-                    <p class="text-white/80">${order.phone}</p>
-                </div>
-                <div>
-                    <p class="text-white/60">آدرس:</p>
-                    <p class="text-white/80">${order.address}</p>
-                </div>
-                <div>
-                    <p class="text-white/60">کد پستی:</p>
-                    <p class="text-white/80">${order.zip_code}</p>
-                </div>
-                <div>
-                    <p class="text-white/60">مبلغ کل:</p>
-                    <p class="text-gold">${order.total.toLocaleString()} تومان</p>
-                </div>
-            </div>
-            <a href="${SUPABASE_URL}/storage/v1/object/public/receipts/${order.receipt_url}" target="_blank" class="text-gold hover:text-gold-light text-sm mb-4 inline-block">مشاهده رسید پرداخت</a>
-            ${order.status === 'pending' ? `
-                <div class="flex gap-2 mt-4">
-                    <button onclick="approveOrder('${order.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-500 transition-colors">تأیید</button>
-                    <button onclick="rejectOrder('${order.id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-500 transition-colors">رد</button>
-                </div>
-            ` : ''}
-            ${order.admin_note ? `<p class="text-white/60 text-sm mt-2">یادداشت: ${order.admin_note}</p>` : ''}
-        </div>
-    `).join('');
+    if (!supabaseClient) return;
+    var { data } = await supabaseClient.from('orders').select('*').order('created_at', { ascending: false });
+    var c = document.getElementById('admin-orders-list');
+    if (!c) return;
+    if (!data || !data.length) { c.innerHTML = '<p class="text-gray-400">سفارشی وجود ندارد</p>'; return; }
+    c.innerHTML = data.map(function(o) {
+        return '<div class="bg-gray-900 rounded-lg p-4 border border-gray-800 mb-4">' +
+            '<div class="flex justify-between mb-4"><span class="text-gray-400 text-sm">' + new Date(o.created_at).toLocaleDateString('fa-IR') + '</span>' +
+            '<span class="px-3 py-1 rounded-full text-xs font-semibold ' + (o.status === 'approved' ? 'bg-green-900 text-green-300' : o.status === 'rejected' ? 'bg-red-900 text-red-300' : 'bg-yellow-900 text-yellow-300') + '">' + getStatusText(o.status) + '</span></div>' +
+            '<p class="text-gray-300 text-sm">تلفن: ' + o.phone + '</p><p class="text-gray-300 text-sm">آدرس: ' + o.address + '</p><p class="text-gray-300 text-sm">کدپستی: ' + o.zip_code + '</p>' +
+            '<p class="text-yellow-500 font-semibold mt-2">' + o.total.toLocaleString() + ' تومان</p>' +
+            '<a href="' + SUPABASE_URL + '/storage/v1/object/public/receipts/' + o.receipt_url + '" target="_blank" class="text-yellow-500 hover:text-yellow-400 text-sm mt-2 inline-block">مشاهده رسید</a>' +
+            (o.status === 'pending' ? '<div class="flex gap-2 mt-4"><button onclick="approveOrder(\'' + o.id + '\')" class="bg-green-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600">تأیید</button><button onclick="rejectOrder(\'' + o.id + '\')" class="bg-red-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600">رد</button></div>' : '') +
+            (o.admin_note ? '<p class="text-gray-400 text-sm mt-2">یادداشت: ' + o.admin_note + '</p>' : '') + '</div>';
+    }).join('');
 }
 
-async function approveOrder(orderId) {
-    const note = prompt('یادداشت ارسال (مثال: طی ۳ روز ارسال می‌شود):');
+async function approveOrder(id) {
+    var note = prompt('یادداشت ارسال:');
     if (note === null) return;
-
-    const { data: order } = await supabase.from('orders').select('*').eq('id', orderId).single();
-    
-    // Update order status
-    await supabase.from('orders').update({ 
-        status: 'approved', 
-        admin_note: note 
-    }).eq('id', orderId);
-
-    // Update product stock
+    var { data: order } = await supabaseClient.from('orders').select('*').eq('id', id).single();
+    await supabaseClient.from('orders').update({ status: 'approved', admin_note: note }).eq('id', id);
     if (order && order.items) {
-        for (const item of order.items) {
-            const { data: product } = await supabase.from('products').select('stock').eq('id', item.id).single();
-            if (product) {
-                await supabase.from('products').update({ 
-                    stock: product.stock - item.quantity 
-                }).eq('id', item.id);
-            }
+        for (var i = 0; i < order.items.length; i++) {
+            var item = order.items[i];
+            var { data: prod } = await supabaseClient.from('products').select('stock').eq('id', item.id).single();
+            if (prod) await supabaseClient.from('products').update({ stock: prod.stock - item.quantity }).eq('id', item.id);
         }
     }
-
     loadAdminOrders();
 }
 
-async function rejectOrder(orderId) {
-    const reason = prompt('دلیل رد سفارش:');
+async function rejectOrder(id) {
+    var reason = prompt('دلیل رد:');
     if (reason === null) return;
-
-    await supabase.from('orders').update({ 
-        status: 'rejected', 
-        admin_note: reason 
-    }).eq('id', orderId);
-
+    await supabaseClient.from('orders').update({ status: 'rejected', admin_note: reason }).eq('id', id);
     loadAdminOrders();
 }
 
 async function loadAdminTickets() {
-    const { data } = await supabase.from('tickets').select('*').order('created_at', { ascending: false });
-    const container = document.getElementById('admin-tickets-list');
-    
-    if (!data || data.length === 0) {
-        container.innerHTML = '<p class="text-white/60">تیکتی وجود ندارد</p>';
-        return;
-    }
-
-    container.innerHTML = data.map(ticket => `
-        <div class="ticket-card">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="font-semibold">${ticket.subject}</h3>
-                <span class="order-status ${ticket.status === 'open' ? 'pending' : 'approved'}">${ticket.status === 'open' ? 'باز' : 'پاسخ داده شده'}</span>
-            </div>
-            <p class="text-white/70 text-sm mb-4">${ticket.description}</p>
-            ${ticket.reply ? `<p class="text-gold text-sm mb-4">پاسخ: ${ticket.reply}</p>` : ''}
-            <div class="flex gap-2">
-                <input type="text" id="reply-${ticket.id}" placeholder="پاسخ..." class="flex-1 bg-dark border border-white/20 rounded-lg px-4 py-2 text-white text-sm focus:border-gold focus:outline-none">
-                <button onclick="replyToTicket('${ticket.id}')" class="bg-gold text-dark px-4 py-2 rounded-lg text-sm hover:bg-gold-light transition-colors">ارسال پاسخ</button>
-            </div>
-        </div>
-    `).join('');
+    if (!supabaseClient) return;
+    var { data } = await supabaseClient.from('tickets').select('*').order('created_at', { ascending: false });
+    var c = document.getElementById('admin-tickets-list');
+    if (!c) return;
+    if (!data || !data.length) { c.innerHTML = '<p class="text-gray-400">تیکتی وجود ندارد</p>'; return; }
+    c.innerHTML = data.map(function(t) {
+        return '<div class="bg-gray-900 rounded-xl p-6 border border-gray-800 mb-4">' +
+            '<h3 class="font-semibold mb-2">' + t.subject + '</h3>' +
+            '<p class="text-gray-300 text-sm mb-4">' + t.description + '</p>' +
+            (t.reply ? '<p class="text-yellow-500 text-sm mb-4">پاسخ: ' + t.reply + '</p>' : '') +
+            '<div class="flex gap-2"><input type="text" id="reply-' + t.id + '" placeholder="پاسخ..." class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white text-sm">' +
+            '<button onclick="replyToTicket(\'' + t.id + '\')" class="bg-yellow-600 text-black px-4 py-2 rounded-lg text-sm hover:bg-yellow-500">ارسال</button></div></div>';
+    }).join('');
 }
 
-async function replyToTicket(ticketId) {
-    const reply = document.getElementById(`reply-${ticketId}`).value;
+async function replyToTicket(id) {
+    var reply = document.getElementById('reply-' + id).value;
     if (!reply) return;
-
-    await supabase.from('tickets').update({ 
-        reply, 
-        status: 'replied' 
-    }).eq('id', ticketId);
-
+    await supabaseClient.from('tickets').update({ reply: reply, status: 'replied' }).eq('id', id);
     loadAdminTickets();
 }
 
-// Search Functions
-function setupSearch() {
-    const searchInput = document.getElementById('search-input');
-    if (searchInput) {
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase();
-            if (!query) {
-                document.getElementById('search-results').innerHTML = '';
-                return;
-            }
-            const results = products.filter(p => 
-                p.title.toLowerCase().includes(query) || 
-                p.description.toLowerCase().includes(query)
-            );
-            renderSearchResults(results);
-        });
-    }
+// ===== LOADER =====
+function hideLoader() {
+    var el = document.getElementById('loader');
+    if (el) { el.style.opacity = '0'; setTimeout(function() { el.style.display = 'none'; }, 700); }
 }
 
-function renderSearchResults(results) {
-    const container = document.getElementById('search-results');
-    if (results.length === 0) {
-        container.innerHTML = '<p class="text-white/60 col-span-3 text-center py-8">نتیجه‌ای یافت نشد</p>';
-        return;
-    }
-    container.innerHTML = results.map(product => `
-        <div class="product-card" onclick="openProductModal(${product.id})">
-            <img src="${product.image_url}" alt="${product.title}">
-            <div class="product-card-content">
-                <h3 class="font-semibold text-lg mb-2">${product.title}</h3>
-                <p class="text-gold font-bold">${product.price.toLocaleString()} تومان</p>
-            </div>
-        </div>
-    `).join('');
-}
-
-// Section Navigation
-function showSection(sectionName) {
-    // Hide hero and scroll container
-    const hero = document.getElementById('hero');
-    const scroll = document.getElementById('scroll-container');
-    const canvasWrap = document.getElementById('canvas-wrap');
-    const marquee = document.querySelector('.marquee-wrap');
-    if (hero) hero.style.display = 'none';
-    if (scroll) scroll.style.display = 'none';
-    if (canvasWrap) canvasWrap.style.display = 'none';
-    if (marquee) marquee.style.display = 'none';
-
-    // Hide all sections
-    document.querySelectorAll('#sections-container > section').forEach(el => {
-        el.classList.add('hidden');
-    });
-
-    // Show requested section
-    const section = document.getElementById(`${sectionName}-section`);
-    if (section) {
-        section.classList.remove('hidden');
-        window.scrollTo(0, 0);
-    }
-
-    // Load data for specific sections
-    if (supabase && (sectionName === 'orders' || sectionName === 'purchases')) {
-        loadOrders();
-    }
-    if (sectionName === 'search') {
-        setupSearch();
-    }
-}
-
-// Frame Loading
-async function loadFramesBackground() {
-    for (let i = 1; i <= FRAME_COUNT; i++) {
-        const img = new Image();
-        img.src = `frames/frame_${String(i).padStart(4, '0')}.webp`;
-        img.onload = () => { frames[i - 1] = img; };
-        img.onerror = () => {};
-    }
-}
-
-async function loadFrames() {
-    const totalFrames = FRAME_COUNT;
-    let loaded = 0;
-    let timeout = null;
-
-    function onLoad() {
-        loaded++;
-        updateLoader((loaded / totalFrames) * 100);
-    }
-
-    function startTimeout() {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            if (loaded < totalFrames) {
-                loaded = totalFrames;
-                updateLoader(100);
-            }
-        }, 10000);
-    }
-
-    // Load first 10 frames immediately
-    const initialBatch = Math.min(10, totalFrames);
-    for (let i = 1; i <= initialBatch; i++) {
-        const img = new Image();
-        img.src = `frames/frame_${String(i).padStart(4, '0')}.webp`;
-        await new Promise(resolve => {
-            img.onload = () => { frames[i - 1] = img; onLoad(); resolve(); };
-            img.onerror = () => { onLoad(); resolve(); };
-            setTimeout(() => resolve(), 2000);
-        });
-    }
-
-    startTimeout();
-
-    // Load remaining frames in background
-    for (let i = initialBatch + 1; i <= totalFrames; i++) {
-        const img = new Image();
-        img.src = `frames/frame_${String(i).padStart(4, '0')}.webp`;
-        img.onload = () => { frames[i - 1] = img; onLoad(); };
-        img.onerror = () => { onLoad(); };
-    }
-
-    // Wait for all frames with timeout
-    while (loaded < totalFrames) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-    }
-    clearTimeout(timeout);
-    updateLoader(100);
-}
-
-// Canvas Rendering
-function setupCanvas() {
-    const canvas = document.getElementById('canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width = window.innerWidth * dpr;
-    canvas.height = window.innerHeight * dpr;
-    ctx.scale(dpr, dpr);
-}
-
-function drawFrame(index) {
-    const img = frames[index];
-    if (!img) return;
-
-    const canvas = document.getElementById('canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const cw = canvas.width / (window.devicePixelRatio || 1);
-    const ch = canvas.height / (window.devicePixelRatio || 1);
-    const iw = img.naturalWidth;
-    const ih = img.naturalHeight;
-    const scale = Math.max(cw / iw, ch / ih) * 0.85;
-    const dw = iw * scale;
-    const dh = ih * scale;
-    const dx = (cw - dw) / 2;
-    const dy = (ch - dh) / 2;
-
-    ctx.fillStyle = '#111111';
-    ctx.fillRect(0, 0, cw, ch);
-    ctx.drawImage(img, dx, dy, dw, dh);
-}
-
-// Scroll Animations
-function setupScrollAnimations() {
-    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-    const heroEl = document.getElementById('hero');
-    const scrollEl = document.getElementById('scroll-container');
-    const canvasWrapEl = document.getElementById('canvas-wrap');
-    if (!scrollEl) return;
-
-    // Hero transition
-    ScrollTrigger.create({
-        trigger: scrollEl,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-        onUpdate: (self) => {
-            const p = self.progress;
-            if (heroEl) heroEl.style.opacity = Math.max(0, 1 - p * 15);
-            const wipeProgress = Math.min(1, Math.max(0, (p - 0.01) / 0.06));
-            const radius = wipeProgress * 75;
-            if (canvasWrapEl) canvasWrapEl.style.clipPath = `circle(${radius}% at 50% 50%)`;
-        }
-    });
-
-    // Frame to scroll binding
-    ScrollTrigger.create({
-        trigger: scrollEl,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-        onUpdate: (self) => {
-            const accelerated = Math.min(self.progress * FRAME_SPEED, 1);
-            const index = Math.min(Math.floor(accelerated * FRAME_COUNT), FRAME_COUNT - 1);
-            if (index !== currentFrame) {
-                currentFrame = index;
-                requestAnimationFrame(() => drawFrame(currentFrame));
-            }
-        }
-    });
-
-    // Dark overlay
-    ScrollTrigger.create({
-        trigger: scrollEl,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-        onUpdate: (self) => {
-            const p = self.progress;
-            let opacity = 0;
-            if (p >= 0.7 && p <= 0.75) opacity = (p - 0.7) / 0.05 * 0.9;
-            else if (p > 0.75 && p < 0.85) opacity = 0.9;
-            else if (p >= 0.85 && p <= 0.9) opacity = 0.9 * (1 - (p - 0.85) / 0.05);
-            darkOverlay.style.opacity = opacity;
-        }
-    });
-
-    // Section animations
-    document.querySelectorAll('.scroll-section').forEach(section => {
-        setupSectionAnimation(section);
-    });
-}
-
-function setupSectionAnimation(section) {
-    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-    const type = section.dataset.animation;
-    const persist = section.dataset.persist === 'true';
-    const enter = parseFloat(section.dataset.enter) / 100;
-    const leave = parseFloat(section.dataset.leave) / 100;
-    const children = section.querySelectorAll('.section-label, .section-heading, .section-body, .section-note, .cta-button, .stat');
-
-    const tl = gsap.timeline({ paused: true });
-
-    switch (type) {
-        case 'fade-up':
-            tl.from(children, { y: 50, opacity: 0, stagger: 0.12, duration: 0.9, ease: 'power3.out' });
-            break;
-        case 'slide-left':
-            tl.from(children, { x: -80, opacity: 0, stagger: 0.14, duration: 0.9, ease: 'power3.out' });
-            break;
-        case 'slide-right':
-            tl.from(children, { x: 80, opacity: 0, stagger: 0.14, duration: 0.9, ease: 'power3.out' });
-            break;
-        case 'scale-up':
-            tl.from(children, { scale: 0.85, opacity: 0, stagger: 0.12, duration: 1.0, ease: 'power2.out' });
-            break;
-        case 'stagger-up':
-            tl.from(children, { y: 60, opacity: 0, stagger: 0.15, duration: 0.8, ease: 'power3.out' });
-            break;
-    }
-
-    const scrollEl = document.getElementById('scroll-container');
-    if (!scrollEl) return;
-    ScrollTrigger.create({
-        trigger: scrollEl,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-        onUpdate: (self) => {
-            const p = self.progress;
-            if (p >= enter && p <= leave) {
-                tl.progress((p - enter) / (leave - enter));
-            } else if (p < enter && tl.progress() > 0) {
-                tl.progress(0);
-            } else if (p > leave && !persist && tl.progress() < 1) {
-                tl.progress(1);
-            } else if (p > leave && persist && tl.progress() < 1) {
-                tl.progress(1);
-            }
-        }
-    });
-}
-
-// Counter Animations
-function setupCounterAnimations() {
-    if (typeof gsap === 'undefined') return;
-    document.querySelectorAll('.stat-number').forEach(el => {
-        const target = parseFloat(el.dataset.value);
-        const decimals = parseInt(el.dataset.decimals || '0');
-        gsap.from(el, {
-            textContent: 0,
-            duration: 2,
-            ease: 'power1.out',
-            snap: { textContent: decimals === 0 ? 1 : 0.01 },
-            scrollTrigger: { 
-                trigger: el.closest('.scroll-section'), 
-                start: 'top 70%', 
-                toggleActions: 'play none none reverse' 
-            }
-        });
-    });
-}
-
-// Marquee Animation
-function setupMarqueeAnimation() {
-    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-    const scrollEl = document.getElementById('scroll-container');
-    const marqueeEl = document.querySelector('.marquee-wrap');
-    if (!scrollEl || !marqueeEl) return;
-
-    gsap.to('.marquee-text', {
-        xPercent: -25,
-        ease: 'none',
-        scrollTrigger: { 
-            trigger: scrollEl, 
-            start: 'top top', 
-            end: 'bottom bottom', 
-            scrub: true 
-        }
-    });
-
-    // Fade marquee based on scroll
-    ScrollTrigger.create({
-        trigger: scrollEl,
-        start: 'top top',
-        end: 'bottom bottom',
-        scrub: true,
-        onUpdate: (self) => {
-            const p = self.progress;
-            if (p > 0.1 && p < 0.9) {
-                marqueeEl.style.opacity = '0.3';
-            } else {
-                marqueeEl.style.opacity = '0';
-            }
-        }
-    });
-}
-
-// Event Listeners
-function setupEventListeners() {
-    // Auth form
-    document.getElementById('auth-form').addEventListener('submit', handleAuth);
-
-    // Mobile menu
-    document.getElementById('mobile-menu-btn').addEventListener('click', () => {
-        document.getElementById('mobile-menu').classList.toggle('hidden');
-    });
-
-    // Support form
-    document.getElementById('support-form').addEventListener('submit', handleSupportSubmit);
-
-    // Banner form
-    document.getElementById('banner-form').addEventListener('submit', handleBannerSubmit);
-
-    // Category form
-    document.getElementById('category-form').addEventListener('submit', handleCategorySubmit);
-
-    // Product form
-    document.getElementById('product-form').addEventListener('submit', handleProductSubmit);
-
-    // Window resize
-    window.addEventListener('resize', setupCanvas);
-}
-
-// Initialize on DOM load
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        setupCanvas();
-        loadFramesBackground();
-    } catch(e) {
-        console.error('Init error:', e);
-    }
-    initApp();
+// ===== INIT =====
+window.addEventListener('DOMContentLoaded', function() {
+    initSupabase();
+    setupEventListeners();
+    hideLoader();
+    checkSession();
+    loadCategories();
+    loadProducts();
+    loadBanners();
 });
+
+async function checkSession() {
+    if (!supabaseClient) { showAuthModal(); return; }
+    try {
+        var { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            await checkAdminRole();
+            hideAuthModal();
+            showCartButton();
+        } else {
+            showAuthModal();
+        }
+    } catch(e) {
+        showAuthModal();
+    }
+}
+
+function setupEventListeners() {
+    var authForm = document.getElementById('auth-form');
+    if (authForm) authForm.addEventListener('submit', handleAuth);
+
+    var mobileBtn = document.getElementById('mobile-menu-btn');
+    if (mobileBtn) mobileBtn.addEventListener('click', function() {
+        var m = document.getElementById('mobile-menu');
+        if (m) m.classList.toggle('hidden');
+    });
+
+    var supportForm = document.getElementById('support-form');
+    if (supportForm) supportForm.addEventListener('submit', handleSupportSubmit);
+
+    var bannerForm = document.getElementById('banner-form');
+    if (bannerForm) bannerForm.addEventListener('submit', handleBannerSubmit);
+
+    var categoryForm = document.getElementById('category-form');
+    if (categoryForm) categoryForm.addEventListener('submit', handleCategorySubmit);
+
+    var productForm = document.getElementById('product-form');
+    if (productForm) productForm.addEventListener('submit', handleProductSubmit);
+
+    var searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.addEventListener('input', function(e) {
+        var q = e.target.value.toLowerCase();
+        var results = products.filter(function(p) { return p.title.toLowerCase().indexOf(q) > -1 || p.description.toLowerCase().indexOf(q) > -1; });
+        var c = document.getElementById('search-results');
+        if (!c) return;
+        if (!q) { c.innerHTML = ''; return; }
+        if (!results.length) { c.innerHTML = '<p class="text-gray-400 col-span-3 text-center py-8">نتیجه‌ای یافت نشد</p>'; return; }
+        c.innerHTML = results.map(function(p) {
+            return '<div class="bg-gray-900 rounded-xl overflow-hidden border border-gray-800 cursor-pointer" onclick="openProductModal(\'' + p.id + '\')">' +
+                '<img src="' + p.image_url + '" class="w-full h-48 object-cover"><div class="p-4"><h3 class="font-semibold">' + p.title + '</h3><p class="text-yellow-500">' + p.price.toLocaleString() + ' تومان</p></div></div>';
+        }).join('');
+    });
+}
