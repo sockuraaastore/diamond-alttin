@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سفارشات من | diamond alttin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="max-w-4xl mx-auto px-4 py-20">
+    <h1 style="font-size:1.8rem;font-weight:700;color:var(--color-gold);margin-bottom:2rem;text-align:center">سفارشات من</h1>
+    <div id="orders-container">
+      <p style="text-align:center;color:var(--color-light-gray)">در حال بارگذاری...</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/orders.js"></script>
+  <script>
+    (async () => {
+      await getCurrentUser();
+      renderNavbar();
+      if (!isLoggedIn()) {
+        window.location.href = 'login.html';
+        return;
+      }
+      await loadOrders();
+      updateCartBadge();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ورود | diamond alttin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div style="max-width:420px;width:100%">
+      <div class="text-center mb-8">
+        <a href="index.html" style="text-decoration:none">
+          <span style="color:var(--color-white);font-size:2rem;font-weight:700">diamond</span>
+          <span style="color:var(--color-gold);font-size:2rem;font-weight:700">alttin</span>
+        </a>
+      </div>
+
+      <div style="background:var(--color-dark-gray);border:1px solid var(--color-gray);border-radius:16px;padding:2rem">
+        <h1 style="text-align:center;font-size:1.5rem;font-weight:700;color:var(--color-gold);margin-bottom:2rem">ورود به حساب</h1>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+          <div style="margin-bottom:1rem">
+            <label style="display:block;margin-bottom:0.5rem;color:var(--color-light-gray);font-size:0.9rem">نام کاربری</label>
+            <input type="text" id="login-username" class="input-field" placeholder="نام کاربری خود را وارد کنید" required>
+          </div>
+          <div style="margin-bottom:1.5rem">
+            <label style="display:block;margin-bottom:0.5rem;color:var(--color-light-gray);font-size:0.9rem">رمز عبور</label>
+            <input type="password" id="login-password" class="input-field" placeholder="رمز عبور خود را وارد کنید" required>
+          </div>
+          <div id="login-error" style="color:#f87171;text-align:center;margin-bottom:1rem;display:none"></div>
+          <button type="submit" class="btn-primary w-full" id="login-btn">ورود</button>
+        </form>
+
+        <p style="text-align:center;margin-top:1.5rem;color:var(--color-light-gray);font-size:0.9rem">
+          حساب ندارید؟ <a href="register.html" style="color:var(--color-gold);text-decoration:none">ثبت نام کنید</a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    (async () => {
+      await getCurrentUser();
+      if (isLoggedIn()) {
+        window.location.href = 'index.html';
+      }
+    })();
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errorDiv = document.getElementById('login-error');
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      btn.textContent = 'در حال ورود...';
+      btn.disabled = true;
+      errorDiv.style.display = 'none';
+
+      try {
+        await login(username, password);
+        showToast('ورود موفقیت‌آمیز بود', 'success');
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 500);
+      } catch (err) {
+        errorDiv.textContent = 'نام کاربری یا رمز عبور اشتباه است';
+        errorDiv.style.display = 'block';
+        btn.textContent = 'ورود';
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>

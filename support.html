@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پشتیبانی | diamond alttin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="max-w-4xl mx-auto px-4 py-20">
+    <h1 style="font-size:1.8rem;font-weight:700;color:var(--color-gold);margin-bottom:2rem;text-align:center">پشتیبانی</h1>
+
+    <!-- New Ticket Form -->
+    <div style="background:var(--color-dark-gray);border:1px solid var(--color-gray);border-radius:16px;padding:2rem;margin-bottom:2rem">
+      <h2 style="font-size:1.2rem;font-weight:600;color:var(--color-gold);margin-bottom:1.5rem">ارسال تیکت جدید</h2>
+      <form id="ticket-form" onsubmit="submitTicket(event)">
+        <div style="margin-bottom:1rem">
+          <label style="display:block;margin-bottom:0.5rem;color:var(--color-light-gray);font-size:0.9rem">موضوع</label>
+          <input type="text" id="ticket-subject" class="input-field" placeholder="موضوع تیکت" required>
+        </div>
+        <div style="margin-bottom:1.5rem">
+          <label style="display:block;margin-bottom:0.5rem;color:var(--color-light-gray);font-size:0.9rem">توضیحات</label>
+          <textarea id="ticket-message" class="input-field" rows="4" placeholder="توضیحات مشکل خود را بنویسید" required style="resize:vertical"></textarea>
+        </div>
+        <button type="submit" class="btn-primary" id="ticket-btn">ارسال تیکت</button>
+      </form>
+    </div>
+
+    <!-- Tickets List -->
+    <div id="tickets-container">
+      <p style="text-align:center;color:var(--color-light-gray)">در حال بارگذاری تیکت‌ها...</p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/support.js"></script>
+  <script>
+    (async () => {
+      await getCurrentUser();
+      renderNavbar();
+      if (!isLoggedIn()) {
+        window.location.href = 'login.html';
+        return;
+      }
+      await loadTickets();
+      updateCartBadge();
+    })();
+  </script>
+</body>
+</html>

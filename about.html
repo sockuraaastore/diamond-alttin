@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>درباره ما | diamond alttin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="max-w-3xl mx-auto px-4 py-20">
+    <div style="text-align:center;margin-bottom:3rem">
+      <span style="color:var(--color-white);font-size:2.5rem;font-weight:700">diamond</span>
+      <span style="color:var(--color-gold);font-size:2.5rem;font-weight:700">alttin</span>
+    </div>
+
+    <div style="background:var(--color-dark-gray);border:1px solid var(--color-gray);border-radius:16px;padding:3rem">
+      <h1 style="font-size:1.8rem;font-weight:700;color:var(--color-gold);margin-bottom:2rem;text-align:center">داستان ما</h1>
+
+      <p style="line-height:2.2;color:var(--color-light-gray);font-size:1.05rem;text-align:justify">
+        داستان ما؛ تلاقی درخشش الماس و اصالت Alttin. برند Diamond Alttin با یک هدف ساده اما بزرگ شکل گرفت: «دسترسی همه‌کس به زیباترین و باکیفیت‌ترین اکسسوری‌ها». کلمه Alttin در نام ما، نمادی از ارزش و زیبایی است و ما در تلاشیم تا این ارزش را در قالب بدلیجاتی با طراحی‌های مدرن، ماندگاری بالا و ضدحساسیت به شما هدیه دهیم.
+      </p>
+
+      <div style="margin-top:2rem;padding:1.5rem;background:var(--color-gray);border-radius:12px">
+        <h2 style="font-size:1.3rem;font-weight:700;color:var(--color-gold);margin-bottom:1rem">چرا Diamond Alttin؟</h2>
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:0.8rem">
+          <li style="display:flex;align-items:center;gap:0.8rem;color:var(--color-light-gray)">
+            <span style="color:var(--color-gold);font-weight:700">۱.</span> تضمین کیفیت و ثبات رنگ
+          </li>
+          <li style="display:flex;align-items:center;gap:0.8rem;color:var(--color-light-gray)">
+            <span style="color:var(--color-gold);font-weight:700">۲.</span> طراحی‌های خاص و ترند
+          </li>
+          <li style="display:flex;align-items:center;gap:0.8rem;color:var(--color-light-gray)">
+            <span style="color:var(--color-gold);font-weight:700">۳.</span> پشتیبانی و ارسال سریع
+          </li>
+        </ul>
+      </div>
+
+      <p style="line-height:2.2;color:var(--color-light-gray);font-size:1.05rem;text-align:justify;margin-top:2rem">
+        ما در Diamond Alttin فقط بدلیجات نمی‌فروشیم، بلکه به شما کمک می‌کنیم تا جزییات استایل خود را به اوج زیبایی برسانید.
+      </p>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/navbar.js"></script>
+  <script>
+    (async () => {
+      await getCurrentUser();
+      renderNavbar();
+      updateCartBadge();
+    })();
+  </script>
+</body>
+</html>

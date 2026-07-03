@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>جستجو | diamond alttin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="max-w-4xl mx-auto px-4 py-20">
+    <h1 style="font-size:1.8rem;font-weight:700;color:var(--color-gold);margin-bottom:2rem;text-align:center">جستجو</h1>
+
+    <div style="margin-bottom:2rem">
+      <input type="text" id="search-input" class="input-field" placeholder="نام محصول را جستجو کنید..." oninput="searchProducts()">
+    </div>
+
+    <div id="search-results" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/navbar.js"></script>
+  <script src="js/search.js"></script>
+  <script>
+    (async () => {
+      await getCurrentUser();
+      renderNavbar();
+      updateCartBadge();
+    })();
+  </script>
+</body>
+</html>

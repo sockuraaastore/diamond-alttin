@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="fa">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>پنل ادمین | diamond alttin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- Passcode Gate -->
+  <div class="passcode-overlay" id="passcode-overlay">
+    <div class="passcode-box">
+      <h2>ورود به پنل ادمین</h2>
+      <p style="color:var(--color-light-gray);margin-bottom:1.5rem">کد عبور را وارد کنید</p>
+      <div class="passcode-dots" id="passcode-dots">
+        <div class="passcode-dot"></div>
+        <div class="passcode-dot"></div>
+        <div class="passcode-dot"></div>
+        <div class="passcode-dot"></div>
+        <div class="passcode-dot"></div>
+        <div class="passcode-dot"></div>
+        <div class="passcode-dot"></div>
+        <div class="passcode-dot"></div>
+      </div>
+      <div class="passcode-numpad">
+        <button class="numpad-btn" onclick="enterDigit(1)">۱</button>
+        <button class="numpad-btn" onclick="enterDigit(2)">۲</button>
+        <button class="numpad-btn" onclick="enterDigit(3)">۳</button>
+        <button class="numpad-btn" onclick="enterDigit(4)">۴</button>
+        <button class="numpad-btn" onclick="enterDigit(5)">۵</button>
+        <button class="numpad-btn" onclick="enterDigit(6)">۶</button>
+        <button class="numpad-btn" onclick="enterDigit(7)">۷</button>
+        <button class="numpad-btn" onclick="enterDigit(8)">۸</button>
+        <button class="numpad-btn" onclick="enterDigit(9)">۹</button>
+        <button class="numpad-btn" onclick="clearPasscode()" style="font-size:0.9rem">پاک کردن</button>
+        <button class="numpad-btn" onclick="enterDigit(0)">۰</button>
+        <button class="numpad-btn" onclick="submitPasscode()" style="background:var(--color-gold);color:var(--color-black)">✓</button>
+      </div>
+      <div id="passcode-error" style="color:#f87171;margin-top:1rem;display:none">کد عبور اشتباه است</div>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard -->
+  <div id="admin-dashboard" style="display:none">
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <h1 style="font-size:1.8rem;font-weight:700;color:var(--color-gold);margin-bottom:2rem">پنل مدیریت</h1>
+
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('banners')">بنرها</button>
+        <button class="tab-btn" onclick="switchTab('categories')">دسته‌بندی‌ها</button>
+        <button class="tab-btn" onclick="switchTab('products')">محصولات</button>
+        <button class="tab-btn" onclick="switchTab('orders')">سفارشات</button>
+        <button class="tab-btn" onclick="switchTab('support')">پشتیبانی</button>
+      </div>
+
+      <!-- Banners Tab -->
+      <div id="tab-banners" class="admin-tab">
+        <div style="background:var(--color-dark-gray);border:1px solid var(--color-gray);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem">
+          <h3 style="font-weight:600;color:var(--color-gold);margin-bottom:1rem">افزودن بنر جدید</h3>
+          <form onsubmit="addBanner(event)" style="display:flex;gap:1rem;align-items:end;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <input type="file" id="banner-file" accept="image/*" class="input-field" required>
+              <p style="color:var(--color-light-gray);font-size:0.8rem;margin-top:0.3rem">نسبت تصویر باید 16:9 باشد</p>
+            </div>
+            <button type="submit" class="btn-primary" id="banner-add-btn">افزودن</button>
+          </form>
+        </div>
+        <div id="banners-list"></div>
+      </div>
+
+      <!-- Categories Tab -->
+      <div id="tab-categories" class="admin-tab" style="display:none">
+        <div style="background:var(--color-dark-gray);border:1px solid var(--color-gray);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem">
+          <h3 style="font-weight:600;color:var(--color-gold);margin-bottom:1rem">افزودن دسته‌بندی</h3>
+          <form onsubmit="addCategory(event)" style="display:flex;gap:1rem;align-items:end;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <input type="text" id="cat-name" class="input-field" placeholder="نام دسته‌بندی" required>
+            </div>
+            <button type="submit" class="btn-primary">افزودن</button>
+          </form>
+        </div>
+        <div id="categories-list"></div>
+      </div>
+
+      <!-- Products Tab -->
+      <div id="tab-products" class="admin-tab" style="display:none">
+        <div style="background:var(--color-dark-gray);border:1px solid var(--color-gray);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem">
+          <h3 style="font-weight:600;color:var(--color-gold);margin-bottom:1rem">افزودن محصول جدید</h3>
+          <form onsubmit="addProduct(event)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+              <div>
+                <label style="display:block;margin-bottom:0.3rem;color:var(--color-light-gray);font-size:0.85rem">نام محصول</label>
+                <input type="text" id="prod-name" class="input-field" required>
+              </div>
+              <div>
+                <label style="display:block;margin-bottom:0.3rem;color:var(--color-light-gray);font-size:0.85rem">قیمت (تومان)</label>
+                <input type="number" id="prod-price" class="input-field" required>
+              </div>
+              <div>
+                <label style="display:block;margin-bottom:0.3rem;color:var(--color-light-gray);font-size:0.85rem">موجودی</label>
+                <input type="number" id="prod-stock" class="input-field" required>
+              </div>
+              <div>
+                <label style="display:block;margin-bottom:0.3rem;color:var(--color-light-gray);font-size:0.85rem">دسته‌بندی</label>
+                <select id="prod-category" class="input-field" required></select>
+              </div>
+            </div>
+            <div style="margin-bottom:1rem">
+              <label style="display:block;margin-bottom:0.3rem;color:var(--color-light-gray);font-size:0.85rem">توضیحات</label>
+              <textarea id="prod-desc" class="input-field" rows="3" style="resize:vertical"></textarea>
+            </div>
+            <div style="margin-bottom:1rem">
+              <label style="display:block;margin-bottom:0.3rem;color:var(--color-light-gray);font-size:0.85rem">تصویر محصول</label>
+              <input type="file" id="prod-image" accept="image/*" class="input-field" required>
+            </div>
+            <button type="submit" class="btn-primary">افزودن محصول</button>
+          </form>
+        </div>
+        <div id="products-list"></div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div id="tab-orders" class="admin-tab" style="display:none">
+        <div id="orders-list"></div>
+      </div>
+
+      <!-- Support Tab -->
+      <div id="tab-support" class="admin-tab" style="display:none">
+        <div id="admin-tickets-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Detail Modal -->
+  <div class="modal-overlay" id="order-modal">
+    <div class="modal-content" style="max-width:600px">
+      <button class="modal-close" onclick="closeOrderModal()">✕</button>
+      <div id="order-modal-content"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/config.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+  <script>
+    (async () => {
+      await getCurrentUser();
+      if (!isLoggedIn()) {
+        window.location.href = 'login.html';
+        return;
+      }
+      if (isAdmin()) {
+        document.getElementById('passcode-overlay').style.display = 'none';
+        document.getElementById('admin-dashboard').style.display = 'block';
+        await loadAdminData();
+      }
+    })();
+  </script>
+</body>
+</html>
