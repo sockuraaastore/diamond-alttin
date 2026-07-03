@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diamond Alttin | Luxury Jewelry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        gold: '#D4AF37',
+                        'gold-light': '#E8D48B',
+                        'gold-dark': '#B8960C',
+                        dark: '#111111',
+                        'dark-gray': '#1a1a1a',
+                        'light-gray': '#f5f3f0',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="bg-dark text-white font-['Inter',sans-serif]">
+    <!-- Loader -->
+    <div id="loader" class="fixed inset-0 bg-dark z-50 flex flex-col items-center justify-center">
+        <div class="loader-brand text-4xl font-['Playfair_Display',serif] mb-8">
+            <span class="text-white">diamond</span>
+            <span class="text-gold ml-4">alttin</span>
+        </div>
+        <div class="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div id="loader-bar" class="h-full bg-gold transition-all duration-300" style="width: 0%"></div>
+        </div>
+        <div id="loader-percent" class="text-gray-500 mt-4 text-sm">0%</div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-40 bg-dark/90 backdrop-blur-md border-b border-white/10">
+        <nav class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="text-2xl font-['Playfair_Display',serif] font-bold">
+                <span class="text-white">diamond</span>
+            </div>
+            <div class="hidden md:flex items-center gap-6">
+                <a href="#" onclick="showSection('home')" class="nav-link text-white/80 hover:text-gold transition-colors">خانه</a>
+                <a href="#" onclick="showSection('search')" class="nav-link text-white/80 hover:text-gold transition-colors">جستجو</a>
+                <a href="#" onclick="showSection('blogs')" class="nav-link text-white/80 hover:text-gold transition-colors">بلاگ</a>
+                <a href="#" onclick="showSection('about')" class="nav-link text-white/80 hover:text-gold transition-colors">درباره ما</a>
+                <a href="#" onclick="showSection('support')" class="nav-link text-white/80 hover:text-gold transition-colors">پشتیبانی</a>
+                <a href="#" onclick="showSection('orders')" class="nav-link text-white/80 hover:text-gold transition-colors">سفارشات</a>
+                <a href="#" onclick="showSection('purchases')" class="nav-link text-white/80 hover:text-gold transition-colors">خریده‌ها</a>
+                <button id="admin-btn" onclick="showAdminPanel()" class="hidden bg-gold text-dark px-4 py-2 rounded-lg font-semibold hover:bg-gold-light transition-colors">پنل مدیریت</button>
+                <button id="logout-btn" onclick="logout()" class="text-white/80 hover:text-gold transition-colors">خروج</button>
+            </div>
+            <div class="text-2xl font-['Playfair_Display',serif] font-bold">
+                <span class="text-gold">alttin</span>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </nav>
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden bg-dark-gray border-t border-white/10 p-4">
+            <div class="flex flex-col gap-4">
+                <a href="#" onclick="showSection('home')" class="text-white/80 hover:text-gold">خانه</a>
+                <a href="#" onclick="showSection('search')" class="text-white/80 hover:text-gold">جستجو</a>
+                <a href="#" onclick="showSection('blogs')" class="text-white/80 hover:text-gold">بلاگ</a>
+                <a href="#" onclick="showSection('about')" class="text-white/80 hover:text-gold">درباره ما</a>
+                <a href="#" onclick="showSection('support')" class="text-white/80 hover:text-gold">پشتیبانی</a>
+                <a href="#" onclick="showSection('orders')" class="text-white/80 hover:text-gold">سفارشات</a>
+                <a href="#" onclick="showSection('purchases')" class="text-white/80 hover:text-gold">خریده‌ها</a>
+                <button id="admin-btn-mobile" onclick="showAdminPanel()" class="hidden bg-gold text-dark px-4 py-2 rounded-lg font-semibold">پنل مدیریت</button>
+                <button onclick="logout()" class="text-white/80 hover:text-gold">خروج</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero-standalone relative h-screen flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-dark via-dark/80 to-dark"></div>
+        <div class="relative z-10 text-center px-4">
+            <h1 class="text-6xl md:text-8xl font-['Playfair_Display',serif] font-bold mb-4">
+                <span class="text-white">diamond</span>
+                <span class="text-gold ml-4">alttin</span>
+            </h1>
+            <p class="text-xl md:text-2xl text-white/70 mb-8">زیبایی، اصالت، درخشش</p>
+            <div class="scroll-indicator animate-bounce">
+                <svg class="w-8 h-8 text-gold mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                </svg>
+            </div>
+        </div>
+    </section>
+
+    <!-- Canvas for Scroll-Driven Video -->
+    <div id="canvas-wrap" class="fixed inset-0 z-0 pointer-events-none" style="clip-path: circle(0% at 50% 50%);">
+        <canvas id="canvas" class="w-full h-full"></canvas>
+    </div>
+
+    <!-- Dark Overlay -->
+    <div id="dark-overlay" class="fixed inset-0 bg-black pointer-events-none z-10" style="opacity: 0;"></div>
+
+    <!-- Scroll Container -->
+    <div id="scroll-container" class="relative" style="height: 1200vh;">
+        <!-- Section: Banners -->
+        <section class="scroll-section absolute w-full" data-enter="8" data-leave="18" data-animation="fade-up" style="top: 13vh;">
+            <div class="max-w-7xl mx-auto px-4 py-16">
+                <div class="section-label text-gold text-sm mb-4">001 / Banner</div>
+                <div id="banners-slider" class="relative overflow-hidden rounded-2xl bg-dark-gray">
+                    <div id="banners-container" class="flex transition-transform duration-500"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Categories -->
+        <section class="scroll-section absolute w-full" data-enter="20" data-leave="32" data-animation="slide-left" style="top: 26vh;">
+            <div class="max-w-7xl mx-auto px-4 py-16">
+                <div class="section-label text-gold text-sm mb-4">002 / Categories</div>
+                <h2 class="text-4xl font-['Playfair_Display',serif] mb-8">دسته‌بندی‌ها</h2>
+                <div id="categories-container" class="flex flex-wrap gap-4">
+                    <button onclick="filterByCategory('all')" class="category-btn bg-gold text-dark px-6 py-3 rounded-full font-semibold hover:bg-gold-light transition-colors">همه</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: Products -->
+        <section class="scroll-section absolute w-full" data-enter="34" data-leave="70" data-animation="stagger-up" style="top: 52vh;">
+            <div class="max-w-7xl mx-auto px-4 py-16">
+                <div class="section-label text-gold text-sm mb-4">003 / Products</div>
+                <h2 class="text-4xl font-['Playfair_Display',serif] mb-8">محصولات</h2>
+                <div id="products-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        </section>
+
+        <!-- Section: Stats -->
+        <section class="scroll-section section-stats absolute w-full" data-enter="72" data-leave="82" data-animation="stagger-up" style="top: 77vh;">
+            <div class="max-w-4xl mx-auto px-4 py-16 text-center">
+                <div class="stats-grid grid grid-cols-2 md:grid-cols-4 gap-8">
+                    <div class="stat">
+                        <span class="stat-number text-5xl font-['Playfair_Display',serif] text-gold" data-value="500" data-decimals="0">0</span>
+                        <span class="stat-suffix text-white/60 text-lg">+</span>
+                        <span class="stat-label text-white/80 block mt-2">محصول متنوع</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number text-5xl font-['Playfair_Display',serif] text-gold" data-value="10000" data-decimals="0">0</span>
+                        <span class="stat-suffix text-white/60 text-lg">+</span>
+                        <span class="stat-label text-white/80 block mt-2">مشتری راضی</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number text-5xl font-['Playfair_Display',serif] text-gold" data-value="99" data-decimals="0">0</span>
+                        <span class="stat-suffix text-white/60 text-lg">٪</span>
+                        <span class="stat-label text-white/80 block mt-2">رضایت مشتری</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number text-5xl font-['Playfair_Display',serif] text-gold" data-value="24" data-decimals="0">0</span>
+                        <span class="stat-suffix text-white/60 text-lg">ساعت</span>
+                        <span class="stat-label text-white/80 block mt-2">ارسال سریع</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section: CTA -->
+        <section class="scroll-section absolute w-full" data-enter="84" data-leave="94" data-animation="scale-up" data-persist="true" style="top: 89vh;">
+            <div class="max-w-4xl mx-auto px-4 py-16 text-center">
+                <h2 class="text-5xl font-['Playfair_Display',serif] mb-6">همین الان شروع کنید</h2>
+                <p class="text-xl text-white/70 mb-8">با Diamond Alttin، جلوه‌ای بی‌نظیر به استایل خود ببخشید</p>
+                <button onclick="showSection('home')" class="cta-button bg-gold text-dark px-8 py-4 rounded-full font-semibold text-lg hover:bg-gold-light transition-colors">مشاهده محصولات</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Marquee -->
+    <div class="marquee-wrap fixed bottom-0 left-0 right-0 z-20 pointer-events-none overflow-hidden py-4" style="opacity: 0;">
+        <div class="marquee-text text-[12vw] font-['Playfair_Display',serif] font-bold text-white/10 whitespace-nowrap">
+            DIAMOND ALTTIN • LUXURY JEWELRY • زیبایی و اصالت •
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden">
+        <div class="bg-dark-gray rounded-2xl p-8 w-full max-w-md mx-4 border border-white/10">
+            <div class="text-center mb-8">
+                <h2 id="auth-title" class="text-3xl font-['Playfair_Display',serif] mb-2">ورود</h2>
+                <p id="auth-subtitle" class="text-white/60">به حساب خود وارد شوید</p>
+            </div>
+            <form id="auth-form" class="space-y-4">
+                <div>
+                    <label class="block text-white/80 mb-2 text-sm">ایمیل</label>
+                    <input type="email" id="auth-email" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none transition-colors" required>
+                </div>
+                <div>
+                    <label class="block text-white/80 mb-2 text-sm">رمز عبور</label>
+                    <input type="password" id="auth-password" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none transition-colors" required>
+                </div>
+                <div id="auth-passcode-group" class="hidden">
+                    <label class="block text-white/80 mb-2 text-sm">کد عبور (اختیاری)</label>
+                    <input type="password" id="auth-passcode" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none transition-colors">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full bg-gold text-dark py-3 rounded-lg font-semibold hover:bg-gold-light transition-colors">ورود</button>
+            </form>
+            <div class="mt-6 text-center">
+                <button onclick="toggleAuthMode()" class="text-gold hover:text-gold-light transition-colors text-sm">
+                    <span id="auth-toggle-text">حساب کاربری ندارید؟ ثبت نام کنید</span>
+                </button>
+            </div>
+            <button onclick="closeAuthModal()" class="absolute top-4 left-4 text-white/60 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Welcome Popup -->
+    <div id="welcome-popup" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden">
+        <div class="bg-dark-gray rounded-2xl p-8 w-full max-w-lg mx-4 border border-gold/30 text-center">
+            <div class="text-5xl mb-6">✨</div>
+            <h2 class="text-2xl font-['Playfair_Display',serif] mb-4 text-gold">به دنیای درخشش خوش آمدید!</h2>
+            <p class="text-white/80 leading-relaxed mb-6 text-justify">
+                به دنیای درخشش و اصالت خوش آمدید! ✨ اینجا در Diamond Alttin، ما معتقدیم که هر اکسسوری، داستانی از سلیقه و درخشش شما را روایت می‌کند. به فروشگاه خودتان خیلی خوش آمدید! ما مجموعه‌ای از زیباترین، باکیفیت‌ترین و خاص‌ترین بدلیجات را با دقت و وسواس زیاد برای شما گلچین کرده‌ایم تا در هر لحظه و هر مناسبت، مثل یک الماس بدرخشید. تنها با چند کلیک، جلوه‌ای بی‌نظیر به استایل خود ببخشید. از همراهی شما صمیمانه سپاسگزاریم.
+            </p>
+            <button onclick="closeWelcomePopup()" class="bg-gold text-dark px-8 py-3 rounded-full font-semibold hover:bg-gold-light transition-colors">بستن</button>
+        </div>
+    </div>
+
+    <!-- Product Modal -->
+    <div id="product-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden">
+        <div class="bg-dark-gray rounded-2xl p-6 w-full max-w-2xl mx-4 border border-white/10 max-h-[90vh] overflow-y-auto">
+            <div id="product-modal-content"></div>
+            <button onclick="closeProductModal()" class="absolute top-4 left-4 text-white/60 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center hidden">
+        <div class="bg-dark-gray rounded-2xl p-6 w-full max-w-2xl mx-4 border border-white/10 max-h-[90vh] overflow-y-auto">
+            <div id="cart-modal-content"></div>
+            <button onclick="closeCartModal()" class="absolute top-4 left-4 text-white/60 hover:text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Sections Container -->
+    <div id="sections-container" class="hidden">
+        <!-- About Section -->
+        <section id="about-section" class="min-h-screen bg-dark py-24 px-4">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-5xl font-['Playfair_Display',serif] mb-8 text-gold">درباره ما</h2>
+                <div class="bg-dark-gray rounded-2xl p-8 border border-white/10">
+                    <p class="text-white/80 leading-relaxed text-lg text-justify">
+                        داستان ما؛ تلاقی درخشش الماس و اصالت Alttin. برند Diamond Alttin با یک هدف ساده اما بزرگ شکل گرفت: «دسترسی همه‌کس به زیباترین و باکیفیت‌ترین اکسسوری‌ها». کلمه Alttin در نام ما، نمادی از ارزش و زیبایی است و ما در تلاشیم تا این ارزش را در قالب بدلیجاتی با طراحی‌های مدرن، ماندگاری بالا و ضدحساسیت به شما هدیه دهیم. چرا Diamond Alttin؟ ۱. تضمین کیفیت و ثبات رنگ ۲. طراحی‌های خاص و ترند ۳. پشتیبانی و ارسال سریع. ما در Diamond Alttin فقط بدلیجات نمی‌فروشیم، بلکه به شما کمک می‌کنیم تا جزییات استایل خود را به اوج زیبایی برسانید.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Orders Section -->
+        <section id="orders-section" class="min-h-screen bg-dark py-24 px-4">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-5xl font-['Playfair_Display',serif] mb-8 text-gold">سفارشات</h2>
+                <div id="orders-container" class="space-y-4"></div>
+            </div>
+        </section>
+
+        <!-- Purchases Section -->
+        <section id="purchases-section" class="min-h-screen bg-dark py-24 px-4">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-5xl font-['Playfair_Display',serif] mb-8 text-gold">خریده‌ها</h2>
+                <div id="purchases-container" class="space-y-4"></div>
+            </div>
+        </section>
+
+        <!-- Support Section -->
+        <section id="support-section" class="min-h-screen bg-dark py-24 px-4">
+            <div class="max-w-2xl mx-auto">
+                <h2 class="text-5xl font-['Playfair_Display',serif] mb-8 text-gold">پشتیبانی</h2>
+                <form id="support-form" class="bg-dark-gray rounded-2xl p-8 border border-white/10 space-y-6">
+                    <div>
+                        <label class="block text-white/80 mb-2">موضوع تیکت</label>
+                        <input type="text" id="ticket-subject" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-white/80 mb-2">توضیحات</label>
+                        <textarea id="ticket-description" rows="5" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none resize-none" required></textarea>
+                    </div>
+                    <button type="submit" class="w-full bg-gold text-dark py-3 rounded-lg font-semibold hover:bg-gold-light transition-colors">ارسال تیکت</button>
+                </form>
+            </div>
+        </section>
+
+        <!-- Search Section -->
+        <section id="search-section" class="min-h-screen bg-dark py-24 px-4">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-5xl font-['Playfair_Display',serif] mb-8 text-gold">جستجو</h2>
+                <div class="mb-8">
+                    <input type="text" id="search-input" placeholder="جستجوی محصولات..." class="w-full bg-dark-gray border border-white/20 rounded-lg px-6 py-4 text-white focus:border-gold focus:outline-none text-lg">
+                </div>
+                <div id="search-results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            </div>
+        </section>
+
+        <!-- Blogs Section -->
+        <section id="blogs-section" class="min-h-screen bg-dark py-24 px-4">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-5xl font-['Playfair_Display',serif] mb-8 text-gold">بلاگ</h2>
+                <div class="text-center text-white/60 py-16">
+                    <p class="text-xl">به زودی...</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="admin-panel" class="fixed inset-0 bg-dark z-50 overflow-y-auto hidden">
+        <div class="max-w-7xl mx-auto px-4 py-8">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-3xl font-['Playfair_Display',serif] text-gold">پنل مدیریت</h1>
+                <button onclick="closeAdminPanel()" class="text-white/60 hover:text-white">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Admin Tabs -->
+            <div class="flex flex-wrap gap-2 mb-8 border-b border-white/10 pb-4">
+                <button onclick="showAdminTab('banners')" class="admin-tab bg-gold text-dark px-4 py-2 rounded-lg font-semibold">بنرها</button>
+                <button onclick="showAdminTab('categories')" class="admin-tab text-white/80 hover:text-gold px-4 py-2 rounded-lg">دسته‌بندی‌ها</button>
+                <button onclick="showAdminTab('products')" class="admin-tab text-white/80 hover:text-gold px-4 py-2 rounded-lg">محصولات</button>
+                <button onclick="showAdminTab('orders')" class="admin-tab text-white/80 hover:text-gold px-4 py-2 rounded-lg">سفارشات</button>
+                <button onclick="showAdminTab('tickets')" class="admin-tab text-white/80 hover:text-gold px-4 py-2 rounded-lg">تیکت‌ها</button>
+            </div>
+
+            <!-- Banner Management -->
+            <div id="admin-banners" class="admin-content">
+                <h2 class="text-2xl mb-6">مدیریت بنرها</h2>
+                <div class="bg-dark-gray rounded-xl p-6 border border-white/10 mb-6">
+                    <form id="banner-form" class="space-y-4">
+                        <div>
+                            <label class="block text-white/80 mb-2">تصویر بنر (16:9)</label>
+                            <input type="file" id="banner-image" accept="image/*" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none">
+                        </div>
+                        <button type="submit" class="bg-gold text-dark px-6 py-2 rounded-lg font-semibold hover:bg-gold-light transition-colors">افزودن بنر</button>
+                    </form>
+                </div>
+                <div id="banners-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>
+
+            <!-- Category Management -->
+            <div id="admin-categories" class="admin-content hidden">
+                <h2 class="text-2xl mb-6">مدیریت دسته‌بندی‌ها</h2>
+                <div class="bg-dark-gray rounded-xl p-6 border border-white/10 mb-6">
+                    <form id="category-form" class="flex gap-4">
+                        <input type="text" id="category-name" placeholder="نام دسته‌بندی" class="flex-1 bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none">
+                        <button type="submit" class="bg-gold text-dark px-6 py-2 rounded-lg font-semibold hover:bg-gold-light transition-colors">افزودن</button>
+                    </form>
+                </div>
+                <div id="categories-list" class="space-y-2"></div>
+            </div>
+
+            <!-- Product Management -->
+            <div id="admin-products" class="admin-content hidden">
+                <h2 class="text-2xl mb-6">مدیریت محصولات</h2>
+                <div class="bg-dark-gray rounded-xl p-6 border border-white/10 mb-6">
+                    <form id="product-form" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-white/80 mb-2">عنوان</label>
+                                <input type="text" id="product-title" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-white/80 mb-2">دسته‌بندی</label>
+                                <select id="product-category" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required></select>
+                            </div>
+                            <div>
+                                <label class="block text-white/80 mb-2">قیمت (تومان)</label>
+                                <input type="number" id="product-price" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-white/80 mb-2">موجودی</label>
+                                <input type="number" id="product-stock" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-white/80 mb-2">توضیحات</label>
+                            <textarea id="product-description" rows="3" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none resize-none" required></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-white/80 mb-2">تصویر محصول</label>
+                            <input type="file" id="product-image" accept="image/*" class="w-full bg-dark border border-white/20 rounded-lg px-4 py-3 text-white focus:border-gold focus:outline-none" required>
+                        </div>
+                        <button type="submit" class="bg-gold text-dark px-6 py-2 rounded-lg font-semibold hover:bg-gold-light transition-colors">افزودن محصول</button>
+                    </form>
+                </div>
+                <div id="products-list-admin" class="space-y-4"></div>
+            </div>
+
+            <!-- Order Management -->
+            <div id="admin-orders" class="admin-content hidden">
+                <h2 class="text-2xl mb-6">مدیریت سفارشات</h2>
+                <div id="admin-orders-list" class="space-y-4"></div>
+            </div>
+
+            <!-- Ticket Management -->
+            <div id="admin-tickets" class="admin-content hidden">
+                <h2 class="text-2xl mb-6">مدیریت تیکت‌ها</h2>
+                <div id="admin-tickets-list" class="space-y-4"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Button -->
+    <button onclick="openCartModal()" id="cart-button" class="fixed bottom-24 right-4 z-30 bg-gold text-dark w-14 h-14 rounded-full shadow-lg hover:bg-gold-light transition-colors hidden items-center justify-center">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+        </svg>
+        <span id="cart-count" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/lenis@1/dist/lenis.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3/dist/ScrollTrigger.min.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
