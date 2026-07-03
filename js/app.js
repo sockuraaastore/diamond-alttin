@@ -61,10 +61,11 @@ function closeAuthModal() {
 async function handleAuth(e) {
     e.preventDefault();
     if (!supabaseClient) { alert('خطا: اتصال به سرور برقرار نیست'); return; }
-    var email = document.getElementById('auth-email').value;
+    var username = document.getElementById('auth-email').value.trim();
     var password = document.getElementById('auth-password').value;
     var passcode = document.getElementById('auth-passcode').value;
     var isLogin = document.getElementById('auth-title').textContent === 'ورود';
+    var email = username + '@diamondalttin.com';
     try {
         var result;
         if (isLogin) {
