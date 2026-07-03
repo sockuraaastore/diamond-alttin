@@ -936,6 +936,22 @@ function showSection(sectionName) {
 async function loadFrames() {
     const totalFrames = FRAME_COUNT;
     let loaded = 0;
+    let timeout = null;
+
+    function onLoad() {
+        loaded++;
+        updateLoader((loaded / totalFrames) * 100);
+    }
+
+    function startTimeout() {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            if (loaded < totalFrames) {
+                loaded = totalFrames;
+                updateLoader(100);
+            }
+        }, 10000);
+    }
 
     // Load first 10 frames immediately
     const initialBatch = Math.min(10, totalFrames);
@@ -943,35 +959,27 @@ async function loadFrames() {
         const img = new Image();
         img.src = `frames/frame_${String(i).padStart(4, '0')}.webp`;
         await new Promise(resolve => {
-            img.onload = () => {
-                frames[i - 1] = img;
-                loaded++;
-                updateLoader((loaded / totalFrames) * 100);
-                resolve();
-            };
-            img.onerror = () => {
-                loaded++;
-                updateLoader((loaded / totalFrames) * 100);
-                resolve();
-            };
+            img.onload = () => { frames[i - 1] = img; onLoad(); resolve(); };
+            img.onerror = () => { onLoad(); resolve(); };
+            setTimeout(() => resolve(), 2000);
         });
     }
+
+    startTimeout();
 
     // Load remaining frames in background
     for (let i = initialBatch + 1; i <= totalFrames; i++) {
         const img = new Image();
         img.src = `frames/frame_${String(i).padStart(4, '0')}.webp`;
-        img.onload = () => {
-            frames[i - 1] = img;
-            loaded++;
-            updateLoader((loaded / totalFrames) * 100);
-        };
+        img.onload = () => { frames[i - 1] = img; onLoad(); };
+        img.onerror = () => { onLoad(); };
     }
 
-    // Wait for all frames
+    // Wait for all frames with timeout
     while (loaded < totalFrames) {
         await new Promise(resolve => setTimeout(resolve, 100));
     }
+    clearTimeout(timeout);
     updateLoader(100);
 }
 
