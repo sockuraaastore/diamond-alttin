@@ -26,8 +26,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body class="bg-dark text-white font-['Inter',sans-serif]">
-    <!-- Loader (disabled) -->
-    <div id="loader" class="hidden">
+    <!-- Loader -->
+    <div id="loader" class="fixed inset-0 bg-dark z-50 flex flex-col items-center justify-center transition-opacity duration-700">
+        <div class="loader-brand text-4xl font-['Playfair_Display',serif] mb-8">
+            <span class="text-white">diamond</span>
+            <span class="text-gold ml-4">alttin</span>
+        </div>
+        <div class="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
+            <div id="loader-bar" class="h-full bg-gold transition-all duration-300" style="width: 100%"></div>
+        </div>
+    </div>
         <div class="loader-brand text-4xl font-['Playfair_Display',serif] mb-8">
             <span class="text-white">diamond</span>
             <span class="text-gold ml-4">alttin</span>

@@ -1,7 +1,6 @@
 // Supabase Configuration
 const SUPABASE_URL = 'https://cdfcwwmtfavvkupanbmd.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNkZmN3d210ZmF2dmt1cGFuYm1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI1NDk3NTMsImV4cCI6MjA5ODEyNTc1M30.3qLSsivr6nRvzzVRF0RG3pawJkd9zDQMx4CtaVcHw98';
-const ADMIN_PASSCODE = '13911400';
 
 // Initialize Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -83,7 +82,11 @@ async function initApp() {
 
 // Loader Functions
 function hideLoader() {
-    // Loader disabled - no-op
+    const loader = document.getElementById('loader');
+    loader.style.opacity = '0';
+    setTimeout(() => {
+        loader.style.display = 'none';
+    }, 700);
 }
 
 function updateLoader(percent) {
@@ -141,11 +144,14 @@ async function handleAuth(e) {
 
         currentUser = result.data.user;
 
-        // Check passcode for admin
-        if (passcode === ADMIN_PASSCODE) {
-            await supabase.from('user_roles').upsert({ user_id: currentUser.id, role: 'admin' });
-            isAdmin = true;
-            showAdminButton();
+        // Server-side passcode verification
+        if (passcode) {
+            const { data: valid } = await supabase.rpc('verify_admin_passcode', { code: passcode });
+            if (valid) {
+                await supabase.from('user_roles').upsert({ user_id: currentUser.id, role: 'admin' });
+                isAdmin = true;
+                showAdminButton();
+            }
         }
 
         await checkAdminRole();
