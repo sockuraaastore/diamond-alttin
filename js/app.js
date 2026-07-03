@@ -32,31 +32,40 @@ let currentFrame = 0;
 const FRAME_COUNT = 94;
 const FRAME_SPEED = 2.0;
 
-// Initialize Lenis Smooth Scroll
-const lenis = new Lenis({
-    duration: 1.2,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    smoothWheel: true
-});
-
-lenis.on('scroll', ScrollTrigger.update);
-gsap.ticker.add((time) => lenis.raf(time * 1000));
-gsap.ticker.lagSmoothing(0);
+// Initialize Lenis Smooth Scroll (with fallback)
+let lenis = null;
+try {
+    lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true
+    });
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((time) => lenis.raf(time * 1000));
+    gsap.ticker.lagSmoothing(0);
+} catch(e) {
+    console.warn('Lenis/GSAP not loaded, using native scroll');
+}
 
 // Initialize App
 async function initApp() {
-    // Check for existing session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        currentUser = session.user;
-        await checkAdminRole();
-        hideAuthModal();
-        hideLoader();
-        showCartButton();
-    } else {
+    try {
+        // Check for existing session
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            await checkAdminRole();
+            hideAuthModal();
+            showCartButton();
+        } else {
+            showAuthModal();
+        }
+    } catch(e) {
+        console.error('Auth error:', e);
         showAuthModal();
-        hideLoader();
     }
+
+    hideLoader();
 
     // Setup event listeners
     setupEventListeners();
@@ -1012,6 +1021,7 @@ function drawFrame(index) {
 
 // Scroll Animations
 function setupScrollAnimations() {
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
     // Hero transition
     ScrollTrigger.create({
         trigger: scrollContainer,
@@ -1066,6 +1076,7 @@ function setupScrollAnimations() {
 }
 
 function setupSectionAnimation(section) {
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
     const type = section.dataset.animation;
     const persist = section.dataset.persist === 'true';
     const enter = parseFloat(section.dataset.enter) / 100;
@@ -1114,6 +1125,7 @@ function setupSectionAnimation(section) {
 
 // Counter Animations
 function setupCounterAnimations() {
+    if (typeof gsap === 'undefined') return;
     document.querySelectorAll('.stat-number').forEach(el => {
         const target = parseFloat(el.dataset.value);
         const decimals = parseInt(el.dataset.decimals || '0');
@@ -1133,6 +1145,7 @@ function setupCounterAnimations() {
 
 // Marquee Animation
 function setupMarqueeAnimation() {
+    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
     gsap.to('.marquee-text', {
         xPercent: -25,
         ease: 'none',
@@ -1189,7 +1202,12 @@ function setupEventListeners() {
 
 // Initialize on DOM load
 document.addEventListener('DOMContentLoaded', async () => {
-    setupCanvas();
-    await loadFrames();
+    try {
+        setupCanvas();
+        await loadFrames();
+    } catch(e) {
+        console.error('Init error:', e);
+        updateLoader(100);
+    }
     initApp();
 });
