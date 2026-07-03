@@ -36,15 +36,12 @@
             <div id="loader-bar" class="h-full bg-gold transition-all duration-300" style="width: 100%"></div>
         </div>
     </div>
-        <div class="loader-brand text-4xl font-['Playfair_Display',serif] mb-8">
-            <span class="text-white">diamond</span>
-            <span class="text-gold ml-4">alttin</span>
-        </div>
-        <div class="w-64 h-1 bg-gray-800 rounded-full overflow-hidden">
-            <div id="loader-bar" class="h-full bg-gold transition-all duration-300" style="width: 0%"></div>
-        </div>
-        <div id="loader-percent" class="text-gray-500 mt-4 text-sm">0%</div>
-    </div>
+    <script>
+        setTimeout(function() {
+            var l = document.getElementById('loader');
+            if (l) { l.style.opacity = '0'; l.style.display = 'none'; }
+        }, 2000);
+    </script>
 
     <!-- Header -->
     <header class="fixed top-0 left-0 right-0 z-40 bg-dark/90 backdrop-blur-md border-b border-white/10">
