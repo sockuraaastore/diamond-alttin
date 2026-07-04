@@ -93,7 +93,8 @@ async function handleAuth(e) {
             showWelcomePopup();
         }
     } catch (error) {
-        alert(error.message || 'خطا در احراز هویت');
+        var msg = error.message || error.msg || JSON.stringify(error) || 'خطا در احراز هویت';
+        alert(msg);
     }
 }
 
